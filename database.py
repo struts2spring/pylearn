@@ -32,8 +32,8 @@ class Book(Base):
     publishedOn = Column('published_on',DateTime, default=func.now())
     hasCover = Column('has_cover',String)  # Title
     bookPath = Column('book_path',String)  # Title
-    rating = Column(String)  # Title
-    uuid = Column('rating',String)  # Title
+    rating = Column('rating',String)  # Title
+    uuid = Column('uuid',String)  # Title
     createdOn = Column('created_on',DateTime, default=func.now())
     authors = relationship(
         'Author',
