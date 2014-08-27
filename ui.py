@@ -7,6 +7,7 @@ import wx.grid as  gridlib
 import sys
 import os
 import time
+import collections
 
 
 class Example(wx.Frame):
@@ -23,23 +24,54 @@ class Example(wx.Frame):
         self.Bind(wx.EVT_RIGHT_DOWN, self.OnRightDown)
 
         menubar = wx.MenuBar()
-        topMenu = {'&File':['Add a book(s)', 'Restart', '&Quit \t Crtl+Q'], '&Edit':['Undo', 'Redo', 'Edit a book info', 'Edit a book info in bulk'], 'Preferences':[], '&View':[], '&Help':['About Better Calibre']}
-        tomMenuKey = ('&File', '&Edit', 'Preferences', '&View', '&Help')
-        i=1
-        j=1
+        topMenu = (
+                   {'&File':[
+                                 {'Add a book(s)':'normal' },
+                                 {'Restart':'normal'},
+                                 {'&Quit \t Crtl+Q':'normal'}
+                             ]
+                    },
+                   {'&Edit':[
+                             {'Undo':'normal'},
+                             {'Redo':'normal'},
+                             {'Edit a book info':'normal'},
+                             {'Edit a book info in bulk':'normal'}
+                             ]
+                    },
+                   {'Preferences':[]},
+                   {'&View':[
+                             {'Show status bar':'check'}, 
+                             {'Show toolbar':'check'}
+                             ]
+                    },
+                   {'&Help':[
+                             {'About Better Calibre':'normal'}
+                             ]
+                    }
+                   )
         
-        for key in tomMenuKey:
+        i = 1
+        j = 1
+        for key in topMenu:
             menu = wx.Menu()
-            print key, topMenu[key]
-            for v in topMenu[key]:
-                print v
-                print i, j
-                menu.Append(i*10+j, v, v)
-                
-                j=j+1
-            print topMenu[key]
-            menubar.Append(menu, key)
-            i=i+1
+            for k, v in key.iteritems():
+                menu = wx.Menu()
+                for menuitemx in v:
+#                     print menuitemx
+                    for menuxk, menuxy in menuitemx.iteritems():
+                        print menuxk, menuxy
+                        kind_value=None
+                        if 'normal'== menuxy:
+                            kind_value=wx.ITEM_NORMAL
+                        elif 'radio'== menuxy:
+                            kind_value=wx.ITEM_RADIO
+                        elif 'check'== menuxy:
+                            kind_value=wx.ITEM_CHECK
+                        menu.Append(i * 10 + j, menuxk, menuxk, kind=kind_value)
+                    j = j + 1
+            menubar.Append(menu, k)
+            i = i + 1
+
 
         viewMenu = wx.Menu()
         # helpMenu = wx.Menu()
@@ -227,7 +259,7 @@ class Example(wx.Frame):
     def OnRightDown(self, e):
         self.PopupMenu(MyPopupMenu(self), e.GetPosition())
 
-    def OnRestart(self,event):
+    def OnRestart(self, event):
         """Restarts the current program.
         Note: this function does not return. Any cleanup action (like
         saving data) must be done before calling this function."""
