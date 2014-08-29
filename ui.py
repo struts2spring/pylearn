@@ -5,17 +5,13 @@
 from sqlalchemy import Column, DateTime, String, Integer, ForeignKey, func, \
     create_engine
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship, backref, sessionmaker, session
-from sqlalchemy.sql import schema
-from sqlalchemy.sql.schema import MetaData, UniqueConstraint
+from sqlalchemy.orm import relationship, backref, sessionmaker
 from wx.html import HtmlWindow
-import collections
 import json
 import logging
 import os
 import sys
 import time
-import wx
 import wx.grid
 
  
@@ -182,10 +178,67 @@ class CreateDatabase:
         bs = query.all()
         return bs
 
+
+class SearchTextValidator(wx.PyValidator):
+    """ This validator is used to ensure that the user has entered something
+        into the text object editor dialog's text field.
+    """
+    def __init__(self):
+        """ Standard constructor.
+        """
+        wx.PyValidator.__init__(self)
+    
+    
+    
+    def Clone(self):
+        """ Standard cloner.
+    
+            Note that every validator must implement the Clone() method.
+        """
+        return SearchTextValidator()
+    
+    
+    def Validate(self, win):
+        """ Validate the contents of the given text control.
+        """
+        textCtrl = self.GetWindow()
+        text = textCtrl.GetValue()
+    
+        if len(text) == 0:
+            wx.MessageBox("A text object must contain some text!", "Error")
+            textCtrl.SetBackgroundColour("pink")
+            textCtrl.SetFocus()
+            textCtrl.Refresh()
+            return False
+        else:
+            textCtrl.SetBackgroundColour(
+                wx.SystemSettings_GetColour(wx.SYS_COLOUR_WINDOW))
+            textCtrl.Refresh()
+            return True
+    
+    
+    def TransferToWindow(self):
+        """ Transfer data from validator to window.
+    
+            The default implementation returns False, indicating that an error
+            occurred.  We simply return True, as we don't do any data transfer.
+        """
+        return True # Prevent wxDialog from complaining.
+    
+    
+    def TransferFromWindow(self):
+        """ Transfer data from window to validator.
+    
+            The default implementation returns False, indicating that an error
+            occurred.  We simply return True, as we don't do any data transfer.
+        """
+        return True # Prevent wxDialog from complaining.
+    
+
 aboutText = """<p>Sorry, there is no information about this program. It is
 running on version %(wxpy)s of <b>wxPython</b> and %(python)s of <b>Python</b>.
 See <a href="http://wiki.wxpython.org">wxPython Wiki</a></p>"""
-
+ 
 class AboutBox(wx.Dialog):
     def __init__(self):
         wx.Dialog.__init__(self, None, -1, "About <<project>>",
@@ -206,12 +259,12 @@ class AboutBox(wx.Dialog):
 class MainWindow(wx.Frame):
 
     def __init__(self, parent, title,  *args, **kwargs):
-        super(MainWindow, self).__init__(parent, title=title, size=(800, 600))
+        super(MainWindow, self).__init__(parent, title=title, size=wx.DisplaySize())
         self.frmPanel = wx.Panel(self)
         global books
         self.books = books
-        self.PhotoMaxSize = 240
-        self.frmPanel.SetBackgroundColour('Black')
+#         self.PhotoMaxSize = 240
+#         self.frmPanel.SetBackgroundColour('sky blue')
         self.InitUI()
         
     def InitUI(self):    
@@ -250,7 +303,6 @@ class MainWindow(wx.Frame):
         for topLevel in topMenu:
             topLevelMenu = wx.Menu()  # Top level
             for k, topLevelItems in topLevel.iteritems():
-                childMenu = wx.Menu()  # Menu item in top level
                 items=list()
                 for topLevelItem in topLevelItems:
                     for child, childValue in topLevelItem.iteritems():
@@ -264,7 +316,7 @@ class MainWindow(wx.Frame):
                             kind_value = wx.ITEM_CHECK
                         
                         item =topLevelMenu.Append(i * 10 + j, childValue[0], childValue[0], kind=kind_value)
-                        item.SetBitmap(wx.Bitmap('new.png'))
+                        item.SetBitmap(wx.Bitmap('icons/rectangle.png'))
                         if 'check' == childValue[1]:
                             item.Check()
                         
@@ -278,60 +330,32 @@ class MainWindow(wx.Frame):
 
         print 'items'
         print self.items[4][0]
-#         viewMenu = wx.Menu()
-        # helpMenu = wx.Menu()
+
         self.Bind(wx.EVT_MENU, self.OnQuit, id=13)
         self.Bind(wx.EVT_MENU, self.OnRestart, id=12)
         self.Bind(wx.EVT_MENU, self.OnAbout, self.items[4][0])
-        
-        
-#         self.shst = viewMenu.Append(wx.ID_ANY, 'Show statubar', 'Show Statusbar', kind=wx.ITEM_CHECK)
-#         self.shtl = viewMenu.Append(wx.ID_ANY, 'Show toolbar', 'Show Toolbar', kind=wx.ITEM_CHECK)
-            
-#         viewMenu.Check(self.shst.GetId(), True)
-#         viewMenu.Check(self.shtl.GetId(), True)
 
         self.Bind(wx.EVT_MENU, self.ToggleStatusBar, self.items[3][0])
         self.Bind(wx.EVT_MENU, self.ToggleToolBar, self.items[3][1])
-#         self.Bind(wx.EVT_MENU, self.ToggleStatusBar, menubar.Menus[3])
-#         self.Bind(wx.EVT_MENU, self.ToggleToolBar, menubar.Menus[3])
 
-        # menubar.Append(fileMenu, '&File')
-#         menubar.Append(viewMenu, '&View')
-        # menubar.Append(helpMenu, '&Help')
         self.SetMenuBar(menubar)
 
         self.toolbar = self.CreateToolBar()
-        self.toolbar.AddLabelTool(1, '', wx.Bitmap('../img/new.png'))
+        if os.path.exists("icons/rectangle.png"):
+            self.toolbar.AddLabelTool(1, '', wx.Bitmap('icons/rectangle.png'))
         self.toolbar.Realize()
 
         self.statusbar = self.CreateStatusBar()
         self.statusbar.SetStatusText('Ready')
 
-
-#         instructions = 'Browse for an image'
-#         img = wx.EmptyImage(240, 240)
-#         self.imageCtrl = wx.StaticBitmap(wx.Panel(self), wx.ID_ANY, wx.BitmapFromImage(img))
-#         instructLbl = wx.StaticText(self.panel, label=instructions)
-#         self.photoTxt = wx.TextCtrl(self.panel, size=(200, -1))
-#        # browseBtn = wx.Button(self.panel, label='Browse')
-#         #browseBtn.Bind(wx.EVT_BUTTON, self.onBrowse)
-#         self.mainSizer = wx.BoxSizer(wx.VERTICAL)
-#         self.sizer = wx.BoxSizer(wx.HORIZONTAL)
-#         self.sizer.Add(wx.StaticLine(self.panel, wx.ID_ANY), 0, wx.ALL | wx.EXPAND, 5)
-#         self.sizer.Add(instructLbl, 0, wx.ALL, 5)
-#         self.sizer.Add(self.imageCtrl, 0, wx.ALL, 5)
-#         self.SetSizer(self.sizer)
-#         self.SetAutoLayout(1)
-        
         # Creating Grid Panel
         self.gridPanel = wx.Panel(self.frmPanel)
         self.grid = wx.grid.Grid(self.gridPanel)
         # self.grid.CreateGrid(25, 8)
         self.grid.SetRowLabelSize(30)
-        vBox = wx.BoxSizer(wx.VERTICAL)
-        vBox.Add(self.grid, 1, wx.EXPAND, 5)
-        self.gridPanel.SetSizer(vBox)
+        vBoxGrid = wx.BoxSizer(wx.VERTICAL)
+        vBoxGrid.Add(self.grid, 1, wx.EXPAND, 5)
+        self.gridPanel.SetSizer(vBoxGrid)
         self.grid.Bind(wx.grid.EVT_GRID_CELL_RIGHT_CLICK, self.showPopupMenu)
 
         # Then we call CreateGrid to set the dimensions of the grid
@@ -375,59 +399,64 @@ class MainWindow(wx.Frame):
             
             
         # Add another panel and some buttons
-        self.colourPnl = wx.Panel(self.frmPanel)
-        self.colourPnl.SetBackgroundColour('GRAY')
-        self.redBtn = wx.Button(self.frmPanel, label='Red')
-        self.greenBtn = wx.Button(self.frmPanel, label='Green')
-        self.exitBtn = wx.Button(self.frmPanel, label='Exit')
+#         self.colourPnl = wx.Panel(self.frmPanel)
+#         self.colourPnl.SetBackgroundColour('GRAY')
+#         self.redBtn = wx.Button(self.frmPanel, label='Red')
+#         self.greenBtn = wx.Button(self.frmPanel, label='Green')
+#         self.exitBtn = wx.Button(self.frmPanel, label='Exit')
 
         self.searchPanel = wx.Panel(self.frmPanel)
-        self.searchText = wx.TextCtrl(self, value="Enter here your name",pos=(150, 60), size=(140,-1))
-        self.Bind(wx.EVT_TEXT, self.EvtText, self.searchText)
-#         m_text = wx.StaticText(self.searchPanel, -1, "Search Book!")
-#         m_text.SetFont(wx.Font(14, wx.SWISS, wx.NORMAL, wx.BOLD))
-#         m_text.SetSize(m_text.GetBestSize())
-#         findBtn = wx.Button(self.frmPanel,  label='Find')
-#         findBtn.Bind(wx.EVT_BUTTON, self.OnFind)
+        self.searchText = wx.TextCtrl(self.searchPanel, id=100,style=0,value="Enter here your name", name=" Search: ", validator=SearchTextValidator())
+        self.searchLabel = wx.StaticText(self.searchPanel, -1, label="Search")
+        self.searchButton = wx.Button(self.searchPanel, label="search")
+        self.hboxSearchPanel= wx.BoxSizer (wx.HORIZONTAL)
+        self.hboxSearchPanel.Add(self.searchLabel, flag=wx.CENTER)
+        self.hboxSearchPanel.Add(self.searchText,proportion=1, flag=wx.CENTER)
+        self.hboxSearchPanel.Add(self.searchButton, flag=wx.CENTER)
+        self.vBoxSearchPanel = wx.BoxSizer(wx.VERTICAL)
+        self.vBoxSearchPanel.Add(self.hboxSearchPanel, proportion=1, flag=wx.EXPAND)
+        self.searchPanel.SetSizerAndFit(self.vBoxSearchPanel)
         
-
+        self.searchText.SetFocus()
+        self.Bind(wx.EVT_TEXT, self.EvtText, self.searchText)
+#         self.Bind(wx.EVT_TEXT, self.OnKeyDown, self.searchText)
+        
         # Add them to sizer.
-        bBox = wx.BoxSizer(wx.VERTICAL)
-#         bBox.Add(self.colourPnl, 1, wx.EXPAND | wx.ALL, 1)
-        bBox.Add(self.searchPanel, 1, wx.EXPAND | wx.ALL, 1)
-        bBox.Add(self.gridPanel, 1, wx.EXPAND | wx.ALL, 1)
-#         bBox.Add(m_text, 0, wx.ALL, 10)
-#         bBox.Add(findBtn, 0, wx.ALL, 10)
-#         bBox.Add(textField)
-
-        # Add buttons in their own sizer
-        btn_hSizer = wx.BoxSizer(wx.HORIZONTAL)
-        btn_hSizer.AddStretchSpacer()
-        btn_hSizer.Add(self.redBtn, proportion=0, flag=wx.EXPAND | wx.ALL, border=5)
-        btn_hSizer.Add(self.greenBtn, proportion=0, flag=wx.EXPAND | wx.ALL, border=5)
-        btn_hSizer.Add(self.exitBtn, proportion=0, flag=wx.EXPAND | wx.ALL, border=5)
-        btn_hSizer.AddStretchSpacer()
-
-        # colorPnlAndBtn_vSizer.Add(btn_hSizer, 0, wx.EXPAND | wx.ALL, 5)
-
-        # SetSizer both sizers in the most senior control that has sizers in it.
-        self.frmPanel.SetSizer(bBox)
+        vBox = wx.BoxSizer(wx.VERTICAL)
+# #         vBox.Add(self.colourPnl, 1, wx.EXPAND | wx.ALL, 1)
+#         vBox.Add(self.hboxSearchPanel, proportion=1, flag=wx.EXPAND)
+        vBox.Add(self.searchPanel, .1, wx.EXPAND | wx.ALL, 1)
+        vBox.Add(self.gridPanel, 9, wx.EXPAND | wx.ALL, 1)
+# 
+# 
+#         # Add buttons in their own sizer
+#         btn_hSizer = wx.BoxSizer(wx.HORIZONTAL)
+#         btn_hSizer.AddStretchSpacer()
+#         btn_hSizer.Add(self.redBtn, proportion=0, flag=wx.EXPAND | wx.ALL, border=5)
+#         btn_hSizer.Add(self.greenBtn, proportion=0, flag=wx.EXPAND | wx.ALL, border=5)
+#         btn_hSizer.Add(self.exitBtn, proportion=0, flag=wx.EXPAND | wx.ALL, border=5)
+#         btn_hSizer.AddStretchSpacer()
+# 
+#         # colorPnlAndBtn_vSizer.Add(btn_hSizer, 0, wx.EXPAND | wx.ALL, 5)
+# 
+#         # SetSizer both sizers in the most senior control that has sizers in it.
+        self.frmPanel.SetSizer(vBox)
         self.frmPanel.Layout()
 
 #-----
 
         # Must call before any event handler is referenced.
-        self.eventsHandler = EventsHandler(self)
+#         self.eventsHandler = EventsHandler(self)
 
-        # Bind event handlers to all controls that have one.
-        self.redBtn.  Bind(wx.EVT_BUTTON, self.eventsHandler.OnRedBtn)
-        self.greenBtn.Bind(wx.EVT_BUTTON, self.eventsHandler.OnGreenBtn)
-        self.exitBtn. Bind(wx.EVT_BUTTON, self.eventsHandler.OnExitBtn)
+#         # Bind event handlers to all controls that have one.
+#         self.redBtn.  Bind(wx.EVT_BUTTON, self.eventsHandler.OnRedBtn)
+#         self.greenBtn.Bind(wx.EVT_BUTTON, self.eventsHandler.OnGreenBtn)
+#         self.exitBtn. Bind(wx.EVT_BUTTON, self.eventsHandler.OnExitBtn)
 
         # Create more convenient ways to close this app.
         # Adding these makes a total of 5 separate ways to exit.
-        self.frmPanel .Bind(wx.EVT_LEFT_DCLICK, self.eventsHandler.OnExitBtn)
-        self.colourPnl.Bind(wx.EVT_LEFT_DCLICK, self.eventsHandler.OnExitBtn)
+#         self.frmPanel .Bind(wx.EVT_LEFT_DCLICK, self.eventsHandler.OnExitBtn)
+#         self.colourPnl.Bind(wx.EVT_LEFT_DCLICK, self.eventsHandler.OnExitBtn)
 #         self.sizer = wx.BoxSizer(wx.HORIZONTAL)
 #         self.sizer2 = wx.BoxSizer(wx.HORIZONTAL)
 #         self.buttons = []
@@ -577,6 +606,7 @@ class MainWindow(wx.Frame):
         dlg = AboutBox()
         dlg.ShowModal()
         dlg.Destroy()
+        pass
     
     def OnFind(self, e):
         print 'finding'
@@ -604,9 +634,18 @@ class MainWindow(wx.Frame):
         self.PopupMenu(menu)
         menu.Destroy()
         
+        
+    def OnKeyDown(self, evt):
+        print evt.GetKeyCode() 
+        if evt.GetKeyCode() != wx.WXK_RETURN:
+            evt.Skip()
+            return 
+        
     def EvtText(self, event):
         global books
-        key = event.KeyCode()
+        t = event.GetEventObject() 
+        print t
+        key = event.GetKeyCode()
         print key
 #         session = CreateDatabase().creatingDatabase()
 #         CreateDatabase().addingData(session)
