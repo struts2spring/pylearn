@@ -30,7 +30,7 @@ console = logging.StreamHandler()
 console.setLevel(logging.INFO)
 # set a format which is simpler for console use
 formatter = logging.Formatter('%(name)-12s: %(levelname)-8s %(message)s')
-# tell the handler to use this format
+# tell the handler to use this format
 console.setFormatter(formatter)
 # add the handler to the root logger
 logging.getLogger('').addHandler(console)
@@ -58,23 +58,25 @@ class Book(Base):
     __tablename__ = 'book'
     id = Column(Integer, primary_key=True, autoincrement=True)
     bookName = Column('book_name', String(46), nullable=False)  # Title
-    isbn_10 = Column(String)  # Title
-    isbn_13 = Column(String)  # Title
-    series = Column(String)  # Title
-    dimension = Column(String)  # Title
-    customerReview = Column('customer_review', String)  # Title
-    bookDescription = Column('book_description', String)  # Title
-    editionNo = Column('edition_no', String)  # Title
-    publisher = Column(String)  # Title
-    bookFormat = Column("book_format", String)  # Title
-    fileSize = Column('file_size', String)  # Title
-    numberOfPages = Column('number_of_pages', String)  # Title
-    inLanguage = Column('in_language', String)  # Title
+    subTitle = Column('sub_title', String)  # Title
+    isbn_10 = Column(String)  # isbn_10
+    isbn_13 = Column(String)  # isbn_13
+    series = Column(String)  # series
+    dimension = Column(String)  # dimension
+    customerReview = Column('customer_review', String)  # customerReview
+    bookDescription = Column('book_description', String)  # bookDescription
+    editionNo = Column('edition_no', String)  # editionNo
+    publisher = Column(String)  # publisher
+    bookFormat = Column("book_format", String)  # bookFormat
+    fileSize = Column('file_size', String)  # fileSize
+    numberOfPages = Column('number_of_pages', String)  # numberOfPages
+    inLanguage = Column('in_language', String)  # inLanguage
     publishedOn = Column('published_on', DateTime, default=func.now())
-    hasCover = Column('has_cover', String)  # Title
-    bookPath = Column('book_path', String)  # Title
-    rating = Column('rating', String)  # Title
-    uuid = Column('uuid', String)  # Title
+    hasCover = Column('has_cover', String)  # hasCover
+    hasCode = Column('has_code', String)  # hasCode
+    bookPath = Column('book_path', String)  # bookPath
+    rating = Column('rating', String)  # rating
+    uuid = Column('uuid', String)  # uuid
     createdOn = Column('created_on', DateTime, default=func.now())
     authors = relationship(
         'Author',
@@ -120,12 +122,12 @@ class CreateDatabase:
     
     def creatingDatabase(self):
         # engine = create_engine('sqlite:///calibre.sqlite', echo=True)
-        engine = create_engine('sqlite:///calibre.sqlite', echo=True)
+        engine = create_engine('sqlite:///calibre.sqlite', echo=False)
         session = sessionmaker()
         
         
         session.configure(bind=engine)
-#         Base.metadata.drop_all(engine)
+        Base.metadata.drop_all(engine)
         
         Base.metadata.create_all(engine)
 #         metadata = Base.metadata
@@ -174,7 +176,7 @@ class CreateDatabase:
         return bs
 
     def findByBookName(self, session, bookName):
-        query = session().query(Book).filter(Book.bookName.like('%'+bookName+'%'))
+        query = session().query(Book).filter(Book.bookName.like('%' + bookName + '%'))
         bs = query.all()
         return bs
 
@@ -223,7 +225,7 @@ class SearchTextValidator(wx.PyValidator):
             The default implementation returns False, indicating that an error
             occurred.  We simply return True, as we don't do any data transfer.
         """
-        return True # Prevent wxDialog from complaining.
+        return True  # Prevent wxDialog from complaining.
     
     
     def TransferFromWindow(self):
@@ -232,7 +234,7 @@ class SearchTextValidator(wx.PyValidator):
             The default implementation returns False, indicating that an error
             occurred.  We simply return True, as we don't do any data transfer.
         """
-        return True # Prevent wxDialog from complaining.
+        return True  # Prevent wxDialog from complaining.
     
 
 aboutText = """<p>Sorry, there is no information about this program. It is
@@ -242,23 +244,23 @@ See <a href="http://wiki.wxpython.org">wxPython Wiki</a></p>"""
 class AboutBox(wx.Dialog):
     def __init__(self):
         wx.Dialog.__init__(self, None, -1, "About <<project>>",
-            style=wx.DEFAULT_DIALOG_STYLE|wx.THICK_FRAME|wx.RESIZE_BORDER|
+            style=wx.DEFAULT_DIALOG_STYLE | wx.THICK_FRAME | wx.RESIZE_BORDER | 
                 wx.TAB_TRAVERSAL)
-        hwin = HtmlWindow(self, -1, size=(400,200))
+        hwin = HtmlWindow(self, -1, size=(400, 200))
         vers = {}
         vers["python"] = sys.version.split()[0]
         vers["wxpy"] = wx.VERSION_STRING
         hwin.SetPage(aboutText % vers)
         btn = hwin.FindWindowById(wx.ID_OK)
         irep = hwin.GetInternalRepresentation()
-        hwin.SetSize((irep.GetWidth()+25, irep.GetHeight()+10))
+        hwin.SetSize((irep.GetWidth() + 25, irep.GetHeight() + 10))
         self.SetClientSize(hwin.GetSize())
         self.CentreOnParent(wx.BOTH)
         self.SetFocus()
 
 class MainWindow(wx.Frame):
 
-    def __init__(self, parent, title,  *args, **kwargs):
+    def __init__(self, parent, title, *args, **kwargs):
         super(MainWindow, self).__init__(parent, title=title, size=wx.DisplaySize())
         self.frmPanel = wx.Panel(self)
         global books
@@ -269,31 +271,31 @@ class MainWindow(wx.Frame):
         
     def InitUI(self):    
         self.Bind(wx.EVT_RIGHT_DOWN, self.OnRightDown)
-        self.items=list()
+        self.items = list()
         menubar = wx.MenuBar()
         topMenu = (
                    {'&File':[
-                                 {'addBooks':['Add a book(s)', 'normal','addBooks.png'] },
-                                 {'restart':['Restart', 'normal','restart.png']},
-                                 {'quite':['&Quit\tCtrl+Q', 'normal','quite.png']}
+                                 {'addBooks':['Add a book(s)', 'normal', 'addBooks.png'] },
+                                 {'restart':['Restart', 'normal', 'restart.png']},
+                                 {'quite':['&Quit\tCtrl+Q', 'normal', 'quite.png']}
                              ]
                     },
                    {'&Edit':[
-                             {'undo':['Undo', 'normal','undo.png']},
-                             {'redo':['Redo', 'normal','redo.png']},
-                             {'editBook':['Edit a book info', 'normal','editBook.png']},
-                             {'editBooks':['Edit a book info in bulk', 'normal','editBooks.png']}
+                             {'undo':['Undo', 'normal', 'undo.png']},
+                             {'redo':['Redo', 'normal', 'redo.png']},
+                             {'editBook':['Edit a book info', 'normal', 'editBook.png']},
+                             {'editBooks':['Edit a book info in bulk', 'normal', 'editBooks.png']}
                              ]
                     },
                    {'Preferences':[]
                     },
                    {'&View':[
-                             {'statusBar':['Show status bar', 'check','statusBar.png']},
-                             {'toolbar':['Show toolbar', 'check','toolbar.png']}
+                             {'statusBar':['Show status bar', 'check', 'statusBar.png']},
+                             {'toolbar':['Show toolbar', 'check', 'toolbar.png']}
                              ]
                     },
                    {'&Help':[
-                             {'aboutCalibre':['About Better Calibre', 'normal','aboutCalibre.png']}
+                             {'aboutCalibre':['About Better Calibre', 'normal', 'aboutCalibre.png']}
                              ]
                     }
                    )
@@ -303,7 +305,7 @@ class MainWindow(wx.Frame):
         for topLevel in topMenu:
             topLevelMenu = wx.Menu()  # Top level
             for k, topLevelItems in topLevel.iteritems():
-                items=list()
+                items = list()
                 for topLevelItem in topLevelItems:
                     for child, childValue in topLevelItem.iteritems():
                         print child, childValue
@@ -315,7 +317,7 @@ class MainWindow(wx.Frame):
                         elif 'check' == childValue[1]:
                             kind_value = wx.ITEM_CHECK
                         
-                        item =topLevelMenu.Append(i * 10 + j, childValue[0], childValue[0], kind=kind_value)
+                        item = topLevelMenu.Append(i * 10 + j, childValue[0], childValue[0], kind=kind_value)
                         item.SetBitmap(wx.Bitmap('icons/rectangle.png'))
                         if 'check' == childValue[1]:
                             item.Check()
@@ -342,7 +344,7 @@ class MainWindow(wx.Frame):
 
         self.toolbar = self.CreateToolBar()
         if os.path.exists("icons/rectangle.png"):
-            self.toolbar.AddLabelTool(1, '', wx.Bitmap('icons/rectangle.png'))
+            self.toolbar.AddLabelTool(1, '', wx.ArtProvider.GetBitmap(wx.ART_ADD_BOOKMARK, wx.ART_CMN_DIALOG, (16, 16)))
         self.toolbar.Realize()
 
         self.statusbar = self.CreateStatusBar()
@@ -361,7 +363,7 @@ class MainWindow(wx.Frame):
         # Then we call CreateGrid to set the dimensions of the grid
         numOfRows = 0
         global books
-        self.books=books
+        self.books = books
         print 'printing grid'
         print  self.books
         if self.books:
@@ -405,21 +407,38 @@ class MainWindow(wx.Frame):
 #         self.greenBtn = wx.Button(self.frmPanel, label='Green')
 #         self.exitBtn = wx.Button(self.frmPanel, label='Exit')
 
-        self.searchPanel = wx.Panel(self.frmPanel)
-        self.searchText = wx.TextCtrl(self.searchPanel, id=100,style=0,value="Enter here your name", name=" Search: ", validator=SearchTextValidator())
+
+
+        
+        self.searchPanel = wx.Panel(self.frmPanel, id=11)
+        # add a bitmap on the left side
+        self.searchTextPanel = wx.Panel(self.searchPanel, style=wx.SUNKEN_BORDER)
+        bmp = wx.ArtProvider_GetBitmap(wx.ART_FIND, wx.ART_OTHER, (16, 16))
+        self.staticbmp = wx.StaticBitmap(self.searchTextPanel, -1, bmp, pos=(1, 0))
+#         w, h = self.staticbmp.GetSize()
+        self.searchText = wx.TextCtrl(self.searchTextPanel, id=100, style=wx.TE_PROCESS_ENTER | wx.NO_BORDER, value="", name=" Search: ", validator=SearchTextValidator())
+        self.hbox_searchText = wx.BoxSizer (wx.HORIZONTAL)
+        self.hbox_searchText.Add(self.staticbmp, flag=wx.CENTER)
+        self.hbox_searchText.Add(self.searchText, proportion=1, flag=wx.CENTER)
+        
+        self.vbox_searchText = wx.BoxSizer(wx.VERTICAL)
+        self.vbox_searchText.Add(self.hbox_searchText, proportion=1, flag=wx.EXPAND)
+        self.searchTextPanel.SetSizerAndFit(self.vbox_searchText)
+        
         self.searchLabel = wx.StaticText(self.searchPanel, -1, label="Search")
         self.searchButton = wx.Button(self.searchPanel, label="search")
-        self.hboxSearchPanel= wx.BoxSizer (wx.HORIZONTAL)
+        self.hboxSearchPanel = wx.BoxSizer (wx.HORIZONTAL)
         self.hboxSearchPanel.Add(self.searchLabel, flag=wx.CENTER)
-        self.hboxSearchPanel.Add(self.searchText,proportion=1, flag=wx.CENTER)
+        self.hboxSearchPanel.Add(self.searchTextPanel, 1, flag=wx.CENTER)
         self.hboxSearchPanel.Add(self.searchButton, flag=wx.CENTER)
         self.vBoxSearchPanel = wx.BoxSizer(wx.VERTICAL)
         self.vBoxSearchPanel.Add(self.hboxSearchPanel, proportion=1, flag=wx.EXPAND)
         self.searchPanel.SetSizerAndFit(self.vBoxSearchPanel)
         
         self.searchText.SetFocus()
-        self.Bind(wx.EVT_TEXT, self.EvtText, self.searchText)
-#         self.Bind(wx.EVT_TEXT, self.OnKeyDown, self.searchText)
+#         self.searchText.Bind(wx.EVT_KEY_DOWN, self.EvtText)
+#         self.searchText.Bind(wx.EVT_TEXT, self.OnKeyDown)
+        self.searchText.Bind(wx.EVT_TEXT_ENTER, self.EvtText)
         
         # Add them to sizer.
         vBox = wx.BoxSizer(wx.VERTICAL)
@@ -493,49 +512,55 @@ class MainWindow(wx.Frame):
         self.Centre()
         self.Show(True)
      
-    def gridActivity(self,bookName):
+    def gridActivity(self, bookName=None, books=None):
         print 'gridActivity'
-        global books
-        session = CreateDatabase().creatingDatabase()
-#         CreateDatabase().addingData(session)
-#         books = CreateDatabase().findAllBook(session)
-#         self.grid.AppendRows(1)
+        print len(books)
         
-        books = CreateDatabase().findByBookName(session, bookName)
-        self.books=books
-        print  self.books
+        print "1", self.grid.GetChildren()
+        print "2", self.grid.GetCellValue(0, 0)
+        self.grid.ForceRefresh()
+        availableRows = self.grid.GetNumberRows()
+        totalRows = len(books)
+        print '-----------------------------------------------availableRows rows', availableRows
+        print '-----------------------------------------------totalRows rows', totalRows
         
-        if self.books:
-            numOfRows = len(self.books)
-        self.grid.CreateGrid(numOfRows, 10)
-
-        # We can set the sizes of individual rows and columns
-        # in pixels
-#         self.grid.SetRowSize(0, 80)
-#         self.grid.SetColSize(0, 120)
-        self.grid.SetColLabelValue(0, "Title")
-        self.grid.SetColLabelValue(1, "Author")
-        self.grid.SetColLabelValue(2, "isbn-13")
-        self.grid.SetColLabelValue(3, "publisher")
-        self.grid.SetColLabelValue(4, "size(MB)")
-        self.grid.SetColLabelValue(5, "Format")
-        self.grid.SetColLabelValue(6, "Path")
-        
-        # And set grid cell contents as strings
+        while(availableRows != 0):
+             
+            for i in range(availableRows):
+                print 'deleting ----->:', i, self.grid.DeleteRows(i, 1)
+                self.grid.ForceRefresh()
+            availableRows = self.grid.GetNumberRows()
+        while(availableRows == 0):
+            print 'deleting ----->:', availableRows
+            availableRows = self.grid.GetNumberRows()
+            self.grid.DeleteRows(availableRows, 1)
+         
+        self.grid.ForceRefresh()
+         
+         
+        self.grid.AppendRows(totalRows)
         rowNum = 0
-        for book in self.books:
+        for book in books:
             print book.id
             self.grid.SetCellValue(rowNum, 0, book.bookName)
             self.grid.SetCellValue(rowNum, 1, book.authors[0].authorName)
-            self.grid.SetCellValue(rowNum, 2, book.isbn_13)
-            self.grid.SetCellValue(rowNum, 3, book.publisher)
+            self.grid.SetCellValue(rowNum, 3, book.isbn_13)
+            self.grid.SetCellValue(rowNum, 2, book.publisher)
             if book.fileSize:
                 self.grid.SetCellValue(rowNum, 4, book.fileSize)
             else:
                 self.grid.SetCellValue(rowNum, 4, '0')
-            self.grid.SetCellValue(rowNum, 5, book.bookFormat)
             self.grid.SetCellValue(rowNum, 6, book.bookPath)
             rowNum = rowNum + 1
+        if totalRows - availableRows > 0:
+            self.grid.AppendRows(totalRows - availableRows)
+        elif totalRows - availableRows <= 0:
+            numOfclean = abs(totalRows - availableRows) + 1
+            print '-----------------------------------------------cleaning rows', numOfclean
+            for i in range(numOfclean):
+#                 for j in range(7):
+#                     self.grid.SetCellValue(i, j, '')
+                self.grid.DeleteRows(i)
             
        
     def onView(self):
@@ -624,10 +649,11 @@ class MainWindow(wx.Frame):
  
         menu = wx.Menu()
         # Show how to put an icon in the menu
-        item = wx.MenuItem(menu, self.popupID1, "One")
+        item = wx.MenuItem(menu, self.popupID1, "Open book detail in New Tab.")
         menu.AppendItem(item)
-        menu.Append(self.popupID2, "Two")
-        menu.Append(self.popupID3, "Three")
+        menu.Append(self.popupID2, "Open containing folder.")
+        menu.Append(self.popupID3, "Search similar books.")
+        menu.Append(self.popupID4, "Properties.")
  
         # Popup the menu.  If an item is selected then its handler
         # will be called before PopupMenu returns.
@@ -643,10 +669,14 @@ class MainWindow(wx.Frame):
         
     def EvtText(self, event):
         global books
-        t = event.GetEventObject() 
-        print t
-        key = event.GetKeyCode()
-        print key
+        engine = create_engine('sqlite:///calibre.sqlite', echo=True)
+        session = sessionmaker()
+        session.configure(bind=engine)
+        bookName = event.GetString()
+        books = CreateDatabase().findByBookName(session, bookName)
+        print 'printing books lenght:', len(books)
+        
+        self.gridActivity(bookName, books)
 #         session = CreateDatabase().creatingDatabase()
 #         CreateDatabase().addingData(session)
 #         books = CreateDatabase().findAllBook(session)
@@ -714,10 +744,10 @@ class EventsHandler() :
 
 def main():
     session = CreateDatabase().creatingDatabase()
-#     CreateDatabase().addingData(session)
-#     books = CreateDatabase().findAllBook(session)
+    CreateDatabase().addingData(session)
+    books = CreateDatabase().findAllBook(session)
     bookName = 'Tinkering'
-    global books,frame
+    global books, frame
     books = CreateDatabase().findByBookName(session, bookName)
     print books
     app = wx.App(0)
