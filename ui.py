@@ -373,7 +373,8 @@ class MainWindow(wx.Frame):
         # We can set the sizes of individual rows and columns
         # in pixels
 #         self.grid.SetRowSize(0, 80)
-#         self.grid.SetColSize(0, 120)
+        self.grid.SetColSize(0, 320)
+        self.grid.SetColSize(1, 220)
         self.grid.SetColLabelValue(0, "Title")
         self.grid.SetColLabelValue(1, "Author")
         self.grid.SetColLabelValue(2, "isbn-13")
@@ -397,18 +398,6 @@ class MainWindow(wx.Frame):
             self.grid.SetCellValue(rowNum, 5, book.bookFormat)
             self.grid.SetCellValue(rowNum, 6, book.bookPath)
             rowNum = rowNum + 1
-            
-            
-            
-        # Add another panel and some buttons
-#         self.colourPnl = wx.Panel(self.frmPanel)
-#         self.colourPnl.SetBackgroundColour('GRAY')
-#         self.redBtn = wx.Button(self.frmPanel, label='Red')
-#         self.greenBtn = wx.Button(self.frmPanel, label='Green')
-#         self.exitBtn = wx.Button(self.frmPanel, label='Exit')
-
-
-
         
         self.searchPanel = wx.Panel(self.frmPanel, id=11)
         # add a bitmap on the left side
@@ -436,77 +425,15 @@ class MainWindow(wx.Frame):
         self.searchPanel.SetSizerAndFit(self.vBoxSearchPanel)
         
         self.searchText.SetFocus()
-#         self.searchText.Bind(wx.EVT_KEY_DOWN, self.EvtText)
-#         self.searchText.Bind(wx.EVT_TEXT, self.OnKeyDown)
         self.searchText.Bind(wx.EVT_TEXT_ENTER, self.EvtText)
         
         # Add them to sizer.
         vBox = wx.BoxSizer(wx.VERTICAL)
-# #         vBox.Add(self.colourPnl, 1, wx.EXPAND | wx.ALL, 1)
-#         vBox.Add(self.hboxSearchPanel, proportion=1, flag=wx.EXPAND)
         vBox.Add(self.searchPanel, .1, wx.EXPAND | wx.ALL, 1)
         vBox.Add(self.gridPanel, 9, wx.EXPAND | wx.ALL, 1)
-# 
-# 
-#         # Add buttons in their own sizer
-#         btn_hSizer = wx.BoxSizer(wx.HORIZONTAL)
-#         btn_hSizer.AddStretchSpacer()
-#         btn_hSizer.Add(self.redBtn, proportion=0, flag=wx.EXPAND | wx.ALL, border=5)
-#         btn_hSizer.Add(self.greenBtn, proportion=0, flag=wx.EXPAND | wx.ALL, border=5)
-#         btn_hSizer.Add(self.exitBtn, proportion=0, flag=wx.EXPAND | wx.ALL, border=5)
-#         btn_hSizer.AddStretchSpacer()
-# 
-#         # colorPnlAndBtn_vSizer.Add(btn_hSizer, 0, wx.EXPAND | wx.ALL, 5)
-# 
-#         # SetSizer both sizers in the most senior control that has sizers in it.
+
         self.frmPanel.SetSizer(vBox)
         self.frmPanel.Layout()
-
-#-----
-
-        # Must call before any event handler is referenced.
-#         self.eventsHandler = EventsHandler(self)
-
-#         # Bind event handlers to all controls that have one.
-#         self.redBtn.  Bind(wx.EVT_BUTTON, self.eventsHandler.OnRedBtn)
-#         self.greenBtn.Bind(wx.EVT_BUTTON, self.eventsHandler.OnGreenBtn)
-#         self.exitBtn. Bind(wx.EVT_BUTTON, self.eventsHandler.OnExitBtn)
-
-        # Create more convenient ways to close this app.
-        # Adding these makes a total of 5 separate ways to exit.
-#         self.frmPanel .Bind(wx.EVT_LEFT_DCLICK, self.eventsHandler.OnExitBtn)
-#         self.colourPnl.Bind(wx.EVT_LEFT_DCLICK, self.eventsHandler.OnExitBtn)
-#         self.sizer = wx.BoxSizer(wx.HORIZONTAL)
-#         self.sizer2 = wx.BoxSizer(wx.HORIZONTAL)
-#         self.buttons = []
-#         for i in range(0, 6):
-#             self.buttons.append(wx.Button(self, -1, "Button &"+str(i)))
-#             self.sizer2.Add(self.buttons[i], 1, wx.EXPAND)
-# 
-#         # Use some sizers to see layout options
-#         self.control = wx.TextCtrl(self, style=wx.TE_MULTILINE)
-#         self.sizer = wx.BoxSizer(wx.VERTICAL)
-#         self.sizer.Add(self.control, 1, wx.EXPAND)
-#         self.sizer.Add(self.sizer2, 0, wx.EXPAND)
-# 
-#         #Layout sizers
-#         self.SetSizer(self.sizer)
-#         self.SetAutoLayout(1)
-#         self.sizer.Fit(self)
-        # setup taskbar icon
-        # tbicon = wx.TaskBarIcon()
-        # tbicon.SetIcon(icon, "I am an Icon")
-        
-        # add taskbar icon event
-        # wx.EVT_TASKBAR_RIGHT_UP(tbicon, OnTaskBarRight)
-#         image = wx.Image('../img/Bible.ico', wx.BITMAP_TYPE_ANY).ConvertToBitmap() 
-#         icon = wx.EmptyIcon() 
-#         icon.CopyFromBitmap(image) 
-#         self.SetIcon(icon) 
-        # favicon = wx.Icon('../img/new.png', wx.BITMAP_TYPE_ANY, 16, 16)
-        # self.SetIcon(favicon)
-#         self.icon = wx.Icon(fn, wx.BITMAP_TYPE_ICO)
-#         self.SetIcon(self.icon)
         self.SetSize((350, 250))
         self.SetTitle('Better Calibre')
         self.Centre()
@@ -521,22 +448,8 @@ class MainWindow(wx.Frame):
         self.grid.ForceRefresh()
         availableRows = self.grid.GetNumberRows()
         totalRows = len(books)
-        print '-----------------------------------------------availableRows rows', availableRows
-        print '-----------------------------------------------totalRows rows', totalRows
-        
-        while(availableRows != 0):
-             
-            for i in range(availableRows):
-                print 'deleting ----->:', i, self.grid.DeleteRows(i, 1)
-                self.grid.ForceRefresh()
-            availableRows = self.grid.GetNumberRows()
-        while(availableRows == 0):
-            print 'deleting ----->:', availableRows
-            availableRows = self.grid.GetNumberRows()
-            self.grid.DeleteRows(availableRows, 1)
-         
+        self.grid.ClearGrid()
         self.grid.ForceRefresh()
-         
          
         self.grid.AppendRows(totalRows)
         rowNum = 0
@@ -554,14 +467,7 @@ class MainWindow(wx.Frame):
             rowNum = rowNum + 1
         if totalRows - availableRows > 0:
             self.grid.AppendRows(totalRows - availableRows)
-        elif totalRows - availableRows <= 0:
-            numOfclean = abs(totalRows - availableRows) + 1
-            print '-----------------------------------------------cleaning rows', numOfclean
-            for i in range(numOfclean):
-#                 for j in range(7):
-#                     self.grid.SetCellValue(i, j, '')
-                self.grid.DeleteRows(i)
-            
+
        
     def onView(self):
         filepath = self.photoTxt.GetValue()
@@ -674,18 +580,7 @@ class MainWindow(wx.Frame):
         session.configure(bind=engine)
         bookName = event.GetString()
         books = CreateDatabase().findByBookName(session, bookName)
-        print 'printing books lenght:', len(books)
-        
         self.gridActivity(bookName, books)
-#         session = CreateDatabase().creatingDatabase()
-#         CreateDatabase().addingData(session)
-#         books = CreateDatabase().findAllBook(session)
-#         self.grid.AppendRows(1)
-#         bookName = event.GetString()
-#         books = CreateDatabase().findByBookName(session, bookName)
-#         print len(books)
-        
-#         self.gridActivity(bookName)
         logger.info('EvtText: %s\n' % event.GetString())  
         
 class MyPopupMenu(wx.Menu):
