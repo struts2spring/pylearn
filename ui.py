@@ -14,6 +14,7 @@ import sys
 import time
 import wx.grid
 
+
  
 Base = declarative_base()
 
@@ -246,7 +247,7 @@ class AboutBox(wx.Dialog):
         wx.Dialog.__init__(self, None, -1, "About <<project>>",
             style=wx.DEFAULT_DIALOG_STYLE | wx.THICK_FRAME | wx.RESIZE_BORDER | 
                 wx.TAB_TRAVERSAL)
-        hwin = HtmlWindow(self, -1, size=(400, 200))
+        hwin = HtmlWindow(self, -1, size=(600, 400))
         vers = {}
         vers["python"] = sys.version.split()[0]
         vers["wxpy"] = wx.VERSION_STRING
@@ -258,10 +259,58 @@ class AboutBox(wx.Dialog):
         self.CentreOnParent(wx.BOTH)
         self.SetFocus()
 
+########################################################################
+class TabPanel(wx.Panel):
+    """
+    This will be the first notebook tab
+    """
+    #----------------------------------------------------------------------
+    def __init__(self, parent):
+        """"""
+
+        wx.Panel.__init__(self, parent=parent, id=wx.ID_ANY)
+
+        vbox = wx.BoxSizer(wx.VERTICAL)
+        grid1=MainGrid(self)
+#         txtOne = wx.TextCtrl(self, wx.ID_ANY, "")
+#         txtTwo = wx.TextCtrl(self, wx.ID_ANY, "")
+# 
+#         sizer = wx.BoxSizer(wx.VERTICAL)
+#         sizer.Add(txtOne, 0, wx.ALL, 5)
+#         sizer.Add(txtTwo, 0, wx.ALL, 5)
+        vbox.Add(grid1)
+        self.SetSizer(vbox)
+########################################################################
+class NotebookDemo(wx.Notebook):
+    """
+    Notebook class
+    """
+
+    #----------------------------------------------------------------------
+    def __init__(self, parent):
+        wx.Notebook.__init__(self, parent, id=wx.ID_ANY, style=
+                             wx.BK_DEFAULT
+                             #wx.BK_TOP 
+                             #wx.BK_BOTTOM
+                             #wx.BK_LEFT
+                             #wx.BK_RIGHT
+                             )
+
+        # Create the first tab and add it to the notebook
+        tabOne = TabPanel(self)
+        tabOne.SetBackgroundColour("Gray")
+        self.AddPage(tabOne, "TabOne")
+        pass
+    
+
+class MainGrid(wx.grid.Grid):
+    def __init__(self, parent):
+        wx.grid.Grid.__init__(self, parent, -1)
+
 class MainWindow(wx.Frame):
 
     def __init__(self, parent, title, *args, **kwargs):
-        super(MainWindow, self).__init__(parent, title=title, size=wx.DisplaySize())
+        super(MainWindow, self).__init__(parent, title=title, size=(640,480))
         self.frmPanel = wx.Panel(self)
         global books
         self.books = books
@@ -344,14 +393,16 @@ class MainWindow(wx.Frame):
 
         self.toolbar = self.CreateToolBar()
         if os.path.exists("icons/rectangle.png"):
-            self.toolbar.AddLabelTool(1, '', wx.ArtProvider.GetBitmap(wx.ART_ADD_BOOKMARK, wx.ART_CMN_DIALOG, (16, 16)))
+            self.toolbar.AddLabelTool(1, '', wx.ArtProvider.GetBitmap(wx.ART_NEW,  wx.ART_TOOLBAR, (16, 16)))
         self.toolbar.Realize()
 
         self.statusbar = self.CreateStatusBar()
         self.statusbar.SetStatusText('Ready')
 
         # Creating Grid Panel
-        self.gridPanel = wx.Panel(self.frmPanel)
+        self.noteBookPanel = wx.Panel(self.frmPanel)
+        self.gridPanel = wx.Panel(self.noteBookPanel)
+#         self.grid = MainGrid(self.gridPanel)
         self.grid = wx.grid.Grid(self.gridPanel)
         # self.grid.CreateGrid(25, 8)
         self.grid.SetRowLabelSize(30)
@@ -364,8 +415,6 @@ class MainWindow(wx.Frame):
         numOfRows = 0
         global books
         self.books = books
-        print 'printing grid'
-        print  self.books
         if self.books:
             numOfRows = len(self.books)
         self.grid.CreateGrid(numOfRows, 10)
@@ -377,20 +426,24 @@ class MainWindow(wx.Frame):
         self.grid.SetColSize(1, 220)
         self.grid.SetColLabelValue(0, "Title")
         self.grid.SetColLabelValue(1, "Author")
-        self.grid.SetColLabelValue(2, "isbn-13")
-        self.grid.SetColLabelValue(3, "publisher")
+        self.grid.SetColLabelValue(2, "publisher")
+        self.grid.SetColLabelValue(3, "isbn-13")
         self.grid.SetColLabelValue(4, "size(MB)")
         self.grid.SetColLabelValue(5, "Format")
         self.grid.SetColLabelValue(6, "Path")
         
-        # And set grid cell contents as strings
+        color='light gray'
+        attr = self.cellAttr = wx.grid.GridCellAttr()
+        attr.SetBackgroundColour(color)
         rowNum = 0
         for book in self.books:
-            print book.id
+            if rowNum%2==0:
+                for i in range(7):
+                    self.grid.SetAttr(rowNum, i, attr)
             self.grid.SetCellValue(rowNum, 0, book.bookName)
             self.grid.SetCellValue(rowNum, 1, book.authors[0].authorName)
-            self.grid.SetCellValue(rowNum, 2, book.isbn_13)
-            self.grid.SetCellValue(rowNum, 3, book.publisher)
+            self.grid.SetCellValue(rowNum, 2, book.publisher)
+            self.grid.SetCellValue(rowNum, 3, book.isbn_13)
             if book.fileSize:
                 self.grid.SetCellValue(rowNum, 4, book.fileSize)
             else:
@@ -427,22 +480,29 @@ class MainWindow(wx.Frame):
         self.searchText.SetFocus()
         self.searchText.Bind(wx.EVT_TEXT_ENTER, self.EvtText)
         
+      
+        self.notebook = NotebookDemo(self.noteBookPanel)
+        vbox_noteBook = wx.BoxSizer(wx.VERTICAL)
+        vbox_noteBook.Add(self.notebook, 1, wx.ALL|wx.EXPAND, 5)
+        vbox_noteBook.Add(self.gridPanel, 1, wx.ALL|wx.EXPAND, 5)
+        self.noteBookPanel.SetSizer(vbox_noteBook)
+        
         # Add them to sizer.
         vBox = wx.BoxSizer(wx.VERTICAL)
         vBox.Add(self.searchPanel, .1, wx.EXPAND | wx.ALL, 1)
-        vBox.Add(self.gridPanel, 9, wx.EXPAND | wx.ALL, 1)
+        vBox.Add(self.noteBookPanel, 9, wx.EXPAND | wx.ALL, 1)
+
+        
 
         self.frmPanel.SetSizer(vBox)
         self.frmPanel.Layout()
         self.SetSize((350, 250))
+        
         self.SetTitle('Better Calibre')
         self.Centre()
         self.Show(True)
      
     def gridActivity(self, bookName=None, books=None):
-        print 'gridActivity'
-        print len(books)
-        
         print "1", self.grid.GetChildren()
         print "2", self.grid.GetCellValue(0, 0)
         self.grid.ForceRefresh()
@@ -450,19 +510,25 @@ class MainWindow(wx.Frame):
         totalRows = len(books)
         self.grid.ClearGrid()
         self.grid.ForceRefresh()
-         
         self.grid.AppendRows(totalRows)
         rowNum = 0
+#         color = (100,100,255)
+        color='light gray'
+        attr = self.cellAttr = wx.grid.GridCellAttr()
+        attr.SetBackgroundColour(color)
         for book in books:
-            print book.id
+            if rowNum%2==0:
+                for i in range(10):
+                    self.grid.SetAttr(rowNum, i, attr)
             self.grid.SetCellValue(rowNum, 0, book.bookName)
             self.grid.SetCellValue(rowNum, 1, book.authors[0].authorName)
-            self.grid.SetCellValue(rowNum, 3, book.isbn_13)
             self.grid.SetCellValue(rowNum, 2, book.publisher)
+            self.grid.SetCellValue(rowNum, 3, book.isbn_13)
             if book.fileSize:
                 self.grid.SetCellValue(rowNum, 4, book.fileSize)
             else:
                 self.grid.SetCellValue(rowNum, 4, '0')
+            self.grid.SetCellValue(rowNum, 5, book.bookFormat)
             self.grid.SetCellValue(rowNum, 6, book.bookPath)
             rowNum = rowNum + 1
         if totalRows - availableRows > 0:
