@@ -9,12 +9,15 @@ from sqlalchemy.orm import relationship, backref, sessionmaker
 from wx.html import HtmlWindow
 import json
 import logging
+import math
 import os
 import sys
 import time
 import wx.grid
-
-
+import wx.lib.agw.aui as aui
+import wx.lib.mixins.gridlabelrenderer as glr
+import wx
+import wx.webkit
  
 Base = declarative_base()
 
@@ -81,7 +84,7 @@ class Book(Base):
     createdOn = Column('created_on', DateTime, default=func.now())
     authors = relationship(
         'Author',
-        secondary='author_book_link'
+        secondary='author_book_link', lazy='joined'
     )
     
 #     def __repr__(self):
@@ -128,7 +131,7 @@ class CreateDatabase:
         
         
         session.configure(bind=engine)
-        Base.metadata.drop_all(engine)
+#         Base.metadata.drop_all(engine)
         
         Base.metadata.create_all(engine)
 #         metadata = Base.metadata
@@ -264,53 +267,281 @@ class TabPanel(wx.Panel):
     """
     This will be the first notebook tab
     """
+    def _init_ctrls(self, prnt):
+        wx.Panel.__init__(self, style=wx.TAB_TRAVERSAL | wx.NO_BORDER, name='', parent=prnt, pos=(0,0), size=wx.Size(200, 100))
+
+#     def __init__(self, parent, id, pos, size, style, name):
+#         self._init_ctrls(parent)
     #----------------------------------------------------------------------
     def __init__(self, parent):
         """"""
-
+        # list containing notebook images:
+        # .ico seem to be more OS portable 
+    
+     
         wx.Panel.__init__(self, parent=parent, id=wx.ID_ANY)
-
+        
+        
+    def addItems(self):
         vbox = wx.BoxSizer(wx.VERTICAL)
-        grid1=MainGrid(self)
-#         txtOne = wx.TextCtrl(self, wx.ID_ANY, "")
-#         txtTwo = wx.TextCtrl(self, wx.ID_ANY, "")
-# 
-#         sizer = wx.BoxSizer(wx.VERTICAL)
-#         sizer.Add(txtOne, 0, wx.ALL, 5)
-#         sizer.Add(txtTwo, 0, wx.ALL, 5)
-        vbox.Add(grid1)
+        self.grid = MainGrid(self)
+
+        vbox.Add(self.grid, 1, wx.ALL | wx.EXPAND, 5)
         self.SetSizer(vbox)
+        pass
+    
+    def addHtml(self):
+        self.html = wx.html.HtmlWindow(self)
+        self.html.SetPage("Here is some <b>formatted</b> <i><u>text</u></i> "
+            "loaded from a <font color=\"red\">string</font>.")
+        pass
 ########################################################################
-class NotebookDemo(wx.Notebook):
+class MainBookTab(aui.AuiNotebook):
     """
     Notebook class
     """
+    defaultPage = ''' 
+    <!DOCTYPE html>
+<html>
+    <head>
+        <style>
+            div.img {
+                height: auto;
+                width: auto;
+                float: left;
+            }
 
+            div.img img {
+                display: inline;
+            }
+
+            div.img a:hover img {
+            }
+
+            div.desc {
+                font-weight: normal;
+                width: 120px;
+            }
+        </style>
+    </head>
+    <body>
+            <a target="_blank" href="klematis_big.htm"><img src="/home/vijay/Documents/Aptana_Workspace/Better/seleniumone/books/1/a_peek_at_computer_electronics.jpg" alt="Professional Java for Web Applications" title="Professional Java for Web Applications" width="200" ></a>
+            <a target="_blank" href="klematis2_big.htm"><img src="/home/vijay/Documents/Aptana_Workspace/Better/seleniumone/books/1/a_peek_at_computer_electronics.jpg" alt="Professional Java for Web Applications" title="Professional Java for Web Applications" width="200" ></a>
+            <a target="_blank" href="klematis3_big.htm"><img src="/home/vijay/Documents/Aptana_Workspace/Better/seleniumone/books/1/a_peek_at_computer_electronics.jpg" alt="Professional Java for Web Applications" title="Professional Java for Web Applications" width="200" ></a>
+            <a target="_blank" href="klematis4_big.htm"><img src="/home/vijay/Documents/Aptana_Workspace/Better/seleniumone/books/1/a_peek_at_computer_electronics.jpg" alt="Professional Java for Web Applications" title="Professional Java for Web Applications" width="200" ></a>
+
+    </body>
+</html>
+
+    '''
     #----------------------------------------------------------------------
     def __init__(self, parent):
-        wx.Notebook.__init__(self, parent, id=wx.ID_ANY, style=
-                             wx.BK_DEFAULT
-                             #wx.BK_TOP 
-                             #wx.BK_BOTTOM
-                             #wx.BK_LEFT
-                             #wx.BK_RIGHT
-                             )
-
+        """Constructor"""
+        aui.AuiNotebook.__init__(self, parent=parent)
+        self.default_style = aui.AUI_NB_DEFAULT_STYLE | aui.AUI_NB_TAB_EXTERNAL_MOVE | wx.NO_BORDER
+        self.SetWindowStyleFlag(self.default_style)
+        
+        il = wx.ImageList(16, 16)  # the (16, 16) is the size in pixels of the images
+        img0 = il.Add(wx.Bitmap('icons/art.ico', wx.BITMAP_TYPE_ICO))
+#         img1 = il.Add(wx.Bitmap('art/icons/main.ico', wx.BITMAP_TYPE_ICO))
+#         img2 = il.Add(wx.Bitmap('art/icons/numbering.ico', wx.BITMAP_TYPE_ICO))
+#         img3 = il.Add(wx.Bitmap('art/icons/date_time.ico', wx.BITMAP_TYPE_ICO))
+#         img4 = il.Add(wx.Bitmap('art/icons/errors.png', wx.BITMAP_TYPE_PNG))
+        self.SetPageImage(0, img0)
         # Create the first tab and add it to the notebook
-        tabOne = TabPanel(self)
-        tabOne.SetBackgroundColour("Gray")
-        self.AddPage(tabOne, "TabOne")
+        self.gallery = TabPanel(self)
+        html = wx.html.HtmlWindow(self.gallery, id=wx.ID_ANY, pos=(0, 0), size=(1002, 1010))
+        self.gallery.SetDoubleBuffered(True)
+#         self.t = wx.StaticText(self.tabTwo , -1, "This is a PageOne object", (20,20))
+#         html = wx.html.HtmlWindow(self.tabTwo, pos=(20,20))
+        html.SetPage(self.defaultPage)
+        
+        
+        self.tabOne = TabPanel(self)
+        self.tabOne.addItems()
+#         tabOne.SetBackgroundColour("Gray")
+        self.AddPage(self.tabOne, "Books")
+        self.AddPage(self.gallery, "Gallery")
         pass
-    
+  
 
 class MainGrid(wx.grid.Grid):
     def __init__(self, parent):
         wx.grid.Grid.__init__(self, parent, -1)
+#         self.grid = wx.grid.Grid(self)
+        global books
+        self.books = books
+        if self.books:
+            numOfRows = len(self.books)
+            print 'numOfRows:', numOfRows
+        self.CreateGrid(numOfRows, 10)
+        self.Bind(wx.grid.EVT_GRID_CELL_RIGHT_CLICK, self.showPopupMenu)
+        self.SetColSize(0, 320)
+        self.SetColSize(1, 220)
+        self.SetColLabelValue(0, "Title")
+        self.SetColLabelValue(1, "Author")
+        self.SetColLabelValue(2, "publisher")
+        self.SetColLabelValue(3, "isbn-13")
+        self.SetColLabelValue(4, "size(MB)")
+        self.SetColLabelValue(5, "Format")
+        self.SetColLabelValue(6, "Path")
+#         self.SetColLabelRenderer(0, MyCornerLabelRenderer(self))
+        
+        color = 'light gray'
+        attr = self.cellAttr = wx.grid.GridCellAttr()
+        attr.SetBackgroundColour(color)
+        rowNum = 0
+        for book in self.books:
+            if rowNum % 2 == 0:
+                for i in range(7):
+                    self.SetAttr(rowNum, i, attr)
+#             self.SetCellRenderer(rowNum, i,)
+            self.SetCellValue(rowNum, 0, book.bookName)
+            self.SetCellValue(rowNum, 1, book.authors[0].authorName)
+            self.SetCellValue(rowNum, 2, book.publisher)
+            self.SetCellValue(rowNum, 3, book.isbn_13)
+            if book.fileSize:
+                self.SetCellValue(rowNum, 4, book.fileSize)
+            else:
+                self.SetCellValue(rowNum, 4, '0')
+            self.SetCellValue(rowNum, 5, book.bookFormat)
+            self.SetCellValue(rowNum, 6, book.bookPath)
+            rowNum = rowNum + 1
+        
+    def showPopupMenu(self, event):
+        """
+        Create and display a popup menu on right-click event
+        """
+        self.rowSelected = event.Row
+        if not hasattr(self, "popupID1"):
+            self.popupID1 = wx.NewId()
+            self.popupID2 = wx.NewId()
+            self.popupID3 = wx.NewId()
+            self.popupID4 = wx.NewId()
+            self.popupID5 = wx.NewId()
+            # make a menu
+            self.Bind(wx.EVT_MENU, self.OnPopupOne, id=self.popupID1)
+            self.Bind(wx.EVT_MENU, self.OnOpen, id=self.popupID2)
+            self.Bind(wx.EVT_MENU, self.OnPopupThree, id=self.popupID3)
+            self.Bind(wx.EVT_MENU, self.OnPopupFour, id=self.popupID4)
+            self.Bind(wx.EVT_MENU, self.OpenBook, id=self.popupID5)
+        menu = wx.Menu()
+        # Show how to put an icon in the menu
+        item = wx.MenuItem(menu, self.popupID1, "Open book detail in New Tab.")
+        item.SetBitmap(wx.Bitmap('icons/rectangle.png'))
+        menu.AppendItem(item)
+        menu.Append(self.popupID2, "Open containing folder.")
+        menu.Append(self.popupID3, "Search similar books.")
+        menu.Append(self.popupID4, "Properties.")
+        menu.Append(self.popupID5, "Open Book")
+ 
+        # Popup the menu.  If an item is selected then its handler
+        # will be called before PopupMenu returns.
+        self.PopupMenu(menu)
+        menu.Destroy()
+ 
+    
+
+    def OnPopupOne(self, event):
+        logger.info("Popup one\n")
+        tabTitle = self.Parent.grid.GetCellValue(self.rowSelected, 0)
+        path = self.Parent.grid.GetCellValue(self.rowSelected, 6)
+        for sName in os.listdir(path):
+            if 'jpg' == sName.split('.')[-1:][0]:
+                self.path = path + '/' + sName
+                print self.path
+                
+        self.page = '''
+            <html>
+                <body>
+            
+                    <div>
+                        
+                            <h1>Professional Java for Web Applications</h1>
+            
+                            <div>
+                                <img src="''' + self.path + '''" alt="Professional Java for Web Applications" title="Professional Java for Web Applications" width="200"  />
+                                <h3>Book Description</h3>
+                                <p>
+                                    This guide shows Java software developers and software engineers how to build complex web applications in an enterprise environment. You'll begin with an introduction to the Java Enterprise Edition and the basic web application, then set up a development application server environment, learn about the tools used in the development process, and explore numerous Java technologies and practices. The book covers industry-standard tools and technologies, specific technologies, and underlying programming concepts.
+                                </p>
+                            </div>
+                            
+                        </div>
+                </body>
+            </html>
+            ''' 
+
+
+        self.tabTwo = TabPanel(self.Parent.Parent)
+        html = wx.html.HtmlWindow(self.tabTwo, id=wx.ID_ANY, pos=(0, 0), size=(802, 610))
+        
+#         html =  wx.webkit.web(self.tabTwo, id=wx.ID_ANY, pos=(0,0), size=(802,610))
+        if 'gtk2' in wx.PlatformInfo:
+            html.SetStandardFonts() 
+        self.tabTwo.SetDoubleBuffered(True)
+#         self.t = wx.StaticText(self.tabTwo , -1, "This is a PageOne object", (20,20))
+#         html = wx.html.HtmlWindow(self.tabTwo, pos=(20,20))
+        html.SetPage(self.page)
+#         self.tabTwo.addHtml()
+        self.Parent.Parent.AddPage(self.tabTwo, tabTitle)
+        print 'tab creating'
+    
+    def OpenBook(self, event):
+        logger.info("OpenBook\n")
+        print self.rowSelected
+#         self.grid=self.mainBookTab.tabOne.grid  
+        FILE_NAME = ''
+        FILE_NAME = "/home/vijay/Documents/Aptana_Workspace/Better/seleniumone/books/3082/Tinkering.pdf"
+        # self.
+        os.spawnlp(os.P_NOWAIT, 'evince', 'evince', FILE_NAME)
+
+    def OnOpen(self, event):
+        
+        logger.info("Popup two\n")
+        if sys.platform == 'win32':
+            pass
+#         import _winreg
+#         path= r'SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon')
+#         for root in (_winreg.HKEY_CURRENT_USER, _winreg.HKEY_LOCAL_MACHINE):
+#             try:
+#                 with _winreg.OpenKey(root, path) as k:
+#                     value, regtype= _winreg.QueryValueEx(k, 'Shell')
+#             except WindowsError:
+#                 pass
+#             else:
+#                 if regtype in (_winreg.REG_SZ, _winreg.REG_EXPAND_SZ):
+#                     shell= value
+#                 break
+#         else:grid
+#             shell= 'Explorer.exe'
+#         subprocess.Popen([shell, d])
+        
+        
+    def OnPopupThree(self, event):
+        logger.info("Popup three\n")
+
+    def OnPopupFour(self, event):
+        FILE_NAME = "/home/vijay/Documents/Aptana_Workspace/Better/seleniumone/books/3082/Tinkering.pdf"
+#         import subprocess
+#         subprocess.call(('cmd', '/home/vijay/Documents/Aptana_Workspace/Better/seleniumone/books/3082', 'start', '', "Tinkering.pdf"))
+        os.spawnlp(os.P_NOWAIT, 'evince', 'evince', FILE_NAME)
+        logger.info("Popup four\n")
+
+
+class MyCornerLabelRenderer(glr.GridLabelRenderer):
+    def __init__(self):
+        self._bmp = wx.ArtProvider_GetBitmap(wx.ART_FIND, wx.ART_OTHER, (16, 16))
+ 
+    def Draw(self, grid, dc, rect, rc):
+        x = rect.left + (rect.width - self._bmp.GetWidth()) / 2
+        y = rect.top + (rect.height - self._bmp.GetHeight()) / 2
+        dc.DrawBitmap(self._bmp, x, y, True)
 
 class MainWindow(wx.Frame):
 
     def __init__(self, parent, title, *args, **kwargs):
-        super(MainWindow, self).__init__(parent, title=title, size=(640,480))
+        super(MainWindow, self).__init__(parent, title=title, size=(1000, 1780))
         self.frmPanel = wx.Panel(self)
         global books
         self.books = books
@@ -357,7 +588,6 @@ class MainWindow(wx.Frame):
                 items = list()
                 for topLevelItem in topLevelItems:
                     for child, childValue in topLevelItem.iteritems():
-                        print child, childValue
                         kind_value = None
                         if 'normal' == childValue[1]:
                             kind_value = wx.ITEM_NORMAL
@@ -365,7 +595,6 @@ class MainWindow(wx.Frame):
                             kind_value = wx.ITEM_RADIO
                         elif 'check' == childValue[1]:
                             kind_value = wx.ITEM_CHECK
-                        
                         item = topLevelMenu.Append(i * 10 + j, childValue[0], childValue[0], kind=kind_value)
                         item.SetBitmap(wx.Bitmap('icons/rectangle.png'))
                         if 'check' == childValue[1]:
@@ -376,81 +605,29 @@ class MainWindow(wx.Frame):
                 self.items.append(items)
 #                 topLevelMenu.Append(-1,childMenu)
             menubar.Append(topLevelMenu, k)
-            print menubar
             i = i + 1
 
-        print 'items'
-        print self.items[4][0]
 
         self.Bind(wx.EVT_MENU, self.OnQuit, id=13)
         self.Bind(wx.EVT_MENU, self.OnRestart, id=12)
         self.Bind(wx.EVT_MENU, self.OnAbout, self.items[4][0])
 
+        self.Bind(wx.EVT_MENU, self.OnAdd, self.items[0][0])
         self.Bind(wx.EVT_MENU, self.ToggleStatusBar, self.items[3][0])
         self.Bind(wx.EVT_MENU, self.ToggleToolBar, self.items[3][1])
 
         self.SetMenuBar(menubar)
 
         self.toolbar = self.CreateToolBar()
-        if os.path.exists("icons/rectangle.png"):
-            self.toolbar.AddLabelTool(1, '', wx.ArtProvider.GetBitmap(wx.ART_NEW,  wx.ART_TOOLBAR, (16, 16)))
+        self.toolbar.AddLabelTool(1, '', wx.ArtProvider.GetBitmap(wx.ART_NEW, wx.ART_TOOLBAR, (16, 16)))
         self.toolbar.Realize()
 
         self.statusbar = self.CreateStatusBar()
         self.statusbar.SetStatusText('Ready')
 
         # Creating Grid Panel
-        self.noteBookPanel = wx.Panel(self.frmPanel)
-        self.gridPanel = wx.Panel(self.noteBookPanel)
-#         self.grid = MainGrid(self.gridPanel)
-        self.grid = wx.grid.Grid(self.gridPanel)
-        # self.grid.CreateGrid(25, 8)
-        self.grid.SetRowLabelSize(30)
-        vBoxGrid = wx.BoxSizer(wx.VERTICAL)
-        vBoxGrid.Add(self.grid, 1, wx.EXPAND, 5)
-        self.gridPanel.SetSizer(vBoxGrid)
-        self.grid.Bind(wx.grid.EVT_GRID_CELL_RIGHT_CLICK, self.showPopupMenu)
+        self.mainBookPanel = wx.Panel(self.frmPanel)
 
-        # Then we call CreateGrid to set the dimensions of the grid
-        numOfRows = 0
-        global books
-        self.books = books
-        if self.books:
-            numOfRows = len(self.books)
-        self.grid.CreateGrid(numOfRows, 10)
-
-        # We can set the sizes of individual rows and columns
-        # in pixels
-#         self.grid.SetRowSize(0, 80)
-        self.grid.SetColSize(0, 320)
-        self.grid.SetColSize(1, 220)
-        self.grid.SetColLabelValue(0, "Title")
-        self.grid.SetColLabelValue(1, "Author")
-        self.grid.SetColLabelValue(2, "publisher")
-        self.grid.SetColLabelValue(3, "isbn-13")
-        self.grid.SetColLabelValue(4, "size(MB)")
-        self.grid.SetColLabelValue(5, "Format")
-        self.grid.SetColLabelValue(6, "Path")
-        
-        color='light gray'
-        attr = self.cellAttr = wx.grid.GridCellAttr()
-        attr.SetBackgroundColour(color)
-        rowNum = 0
-        for book in self.books:
-            if rowNum%2==0:
-                for i in range(7):
-                    self.grid.SetAttr(rowNum, i, attr)
-            self.grid.SetCellValue(rowNum, 0, book.bookName)
-            self.grid.SetCellValue(rowNum, 1, book.authors[0].authorName)
-            self.grid.SetCellValue(rowNum, 2, book.publisher)
-            self.grid.SetCellValue(rowNum, 3, book.isbn_13)
-            if book.fileSize:
-                self.grid.SetCellValue(rowNum, 4, book.fileSize)
-            else:
-                self.grid.SetCellValue(rowNum, 4, '0')
-            self.grid.SetCellValue(rowNum, 5, book.bookFormat)
-            self.grid.SetCellValue(rowNum, 6, book.bookPath)
-            rowNum = rowNum + 1
         
         self.searchPanel = wx.Panel(self.frmPanel, id=11)
         # add a bitmap on the left side
@@ -459,6 +636,7 @@ class MainWindow(wx.Frame):
         self.staticbmp = wx.StaticBitmap(self.searchTextPanel, -1, bmp, pos=(1, 0))
 #         w, h = self.staticbmp.GetSize()
         self.searchText = wx.TextCtrl(self.searchTextPanel, id=100, style=wx.TE_PROCESS_ENTER | wx.NO_BORDER, value="", name=" Search: ", validator=SearchTextValidator())
+        self.searchText.SetToolTipString('Search your book here.')
         self.hbox_searchText = wx.BoxSizer (wx.HORIZONTAL)
         self.hbox_searchText.Add(self.staticbmp, flag=wx.CENTER)
         self.hbox_searchText.Add(self.searchText, proportion=1, flag=wx.CENTER)
@@ -481,28 +659,32 @@ class MainWindow(wx.Frame):
         self.searchText.Bind(wx.EVT_TEXT_ENTER, self.EvtText)
         
       
-        self.notebook = NotebookDemo(self.noteBookPanel)
+        self.mainBookTab = MainBookTab(self.mainBookPanel)
         vbox_noteBook = wx.BoxSizer(wx.VERTICAL)
-        vbox_noteBook.Add(self.notebook, 1, wx.ALL|wx.EXPAND, 5)
-        vbox_noteBook.Add(self.gridPanel, 1, wx.ALL|wx.EXPAND, 5)
-        self.noteBookPanel.SetSizer(vbox_noteBook)
+        vbox_noteBook.Add(self.mainBookTab, 1, wx.ALL | wx.EXPAND, 5)
+#         vbox_noteBook.Add(self.gridPanel, 1, wx.ALL|wx.EXPAND, 5)
+        self.mainBookPanel.SetSizer(vbox_noteBook)
         
         # Add them to sizer.
         vBox = wx.BoxSizer(wx.VERTICAL)
         vBox.Add(self.searchPanel, .1, wx.EXPAND | wx.ALL, 1)
-        vBox.Add(self.noteBookPanel, 9, wx.EXPAND | wx.ALL, 1)
+        vBox.Add(self.mainBookPanel, 9, wx.EXPAND | wx.ALL, 1)
 
         
 
         self.frmPanel.SetSizer(vBox)
         self.frmPanel.Layout()
-        self.SetSize((350, 250))
+        self.SetSize((1000, 1780))
         
         self.SetTitle('Better Calibre')
         self.Centre()
         self.Show(True)
      
     def gridActivity(self, bookName=None, books=None):
+        print self.mainBookTab  
+        self.grid = self.mainBookTab.tabOne.grid      
+        print 'updating'
+        
         print "1", self.grid.GetChildren()
         print "2", self.grid.GetCellValue(0, 0)
         self.grid.ForceRefresh()
@@ -510,14 +692,35 @@ class MainWindow(wx.Frame):
         totalRows = len(books)
         self.grid.ClearGrid()
         self.grid.ForceRefresh()
-        self.grid.AppendRows(totalRows)
+        self.grid.ClearGrid
+        if totalRows > availableRows :
+            try:
+                self.grid.AppendRows(totalRows - availableRows)
+            except:
+                print 'one'
+                
+        elif totalRows < availableRows:
+            print 'one_1'
+            try:
+                self.grid.BeginBatch()
+                self.grid.DeleteRows(0, availableRows - totalRows, True)
+                self.grid.EndBatch()
+            except:
+                print 'exception one_1'
+        else:
+            print 'one_2_'
+            self.grid.DeleteRows(0, availableRows, True)
+            self.grid.AppendRows(totalRows)
         rowNum = 0
 #         color = (100,100,255)
-        color='light gray'
+        color = 'light gray'
         attr = self.cellAttr = wx.grid.GridCellAttr()
         attr.SetBackgroundColour(color)
+        print 'totalRows', totalRows
+        print 'availableRows', availableRows
+        
         for book in books:
-            if rowNum%2==0:
+            if rowNum % 2 == 0:
                 for i in range(10):
                     self.grid.SetAttr(rowNum, i, attr)
             self.grid.SetCellValue(rowNum, 0, book.bookName)
@@ -531,9 +734,7 @@ class MainWindow(wx.Frame):
             self.grid.SetCellValue(rowNum, 5, book.bookFormat)
             self.grid.SetCellValue(rowNum, 6, book.bookPath)
             rowNum = rowNum + 1
-        if totalRows - availableRows > 0:
-            self.grid.AppendRows(totalRows - availableRows)
-
+    pass
        
     def onView(self):
         filepath = self.photoTxt.GetValue()
@@ -552,16 +753,44 @@ class MainWindow(wx.Frame):
         self.imageCtrl.SetBitmap(wx.BitmapFromImage(img))
         self.panel.Refresh()
         
-    def onBrowse(self, event):
+    def OnAdd(self, event):
         """ 
         Browse for file
+        
         """
-        wildcard = "JPEG files (*.jpg)|*.jpg"
-        dialog = wx.FileDialog(None, "Choose a file", wildcard=wildcard, style=wx.OPEN)
-        if dialog.ShowModal() == wx.ID_OK:
-            self.photoTxt.SetValue(dialog.GetPath())
-        dialog.Destroy() 
-        self.onView()
+        
+        # This is how you pre-establish a file filter so that the dialog
+        # only shows the extension(s) you want it to.
+        wildcard = "PDF Book source (*.pdf)|*.pdf|" \
+                    "TXT Book source (*.txt)|*.txt|"\
+                    "All Book source (*.*)|*.*"
+        
+        dlg = wx.FileDialog(None, message="Choose a Python file", defaultDir=os.getcwd(),
+                            defaultFile="", wildcard=wildcard, style=wx.FD_OPEN)
+
+        # Show the dialog and retrieve the user response. If it is the OK response, 
+        # process the data.
+        if dlg.ShowModal() == wx.ID_OK:
+            # This returns the file that was selected
+            path = dlg.GetPath()
+
+            # Open the file as read-only and slurp its content
+            fid = open(path, 'rt')
+            text = fid.read()
+            fid.close()
+
+            # Create the notebook page as a wx.TextCtrl and
+            # add it as a page of the wx.Notebook
+            text_ctrl = wx.TextCtrl(self.notebook, style=wx.TE_MULTILINE)
+            text_ctrl.SetValue(text)
+
+            filename = os.path.split(os.path.splitext(path)[0])[1]
+            self.notebook.AddPage(text_ctrl, filename, select=True)
+
+        # Destroy the dialog. Don't do this until you are done with it!
+        # BAD things can happen otherwise!
+        dlg.Destroy()
+
         
     def ToggleStatusBar(self, e):
         
@@ -609,32 +838,10 @@ class MainWindow(wx.Frame):
         print 'finding'
         pass     
         #----------------------------------------------------------------------
-    def showPopupMenu(self, event):
-        """
-        Create and display a popup menu on right-click event
-        """
-        if not hasattr(self, "popupID1"):
-            self.popupID1 = wx.NewId()
-            self.popupID2 = wx.NewId()
-            self.popupID3 = wx.NewId()
-            # make a menu
- 
-        menu = wx.Menu()
-        # Show how to put an icon in the menu
-        item = wx.MenuItem(menu, self.popupID1, "Open book detail in New Tab.")
-        menu.AppendItem(item)
-        menu.Append(self.popupID2, "Open containing folder.")
-        menu.Append(self.popupID3, "Search similar books.")
-        menu.Append(self.popupID4, "Properties.")
- 
-        # Popup the menu.  If an item is selected then its handler
-        # will be called before PopupMenu returns.
-        self.PopupMenu(menu)
-        menu.Destroy()
+   
         
         
     def OnKeyDown(self, evt):
-        print evt.GetKeyCode() 
         if evt.GetKeyCode() != wx.WXK_RETURN:
             evt.Skip()
             return 
@@ -645,8 +852,9 @@ class MainWindow(wx.Frame):
         session = sessionmaker()
         session.configure(bind=engine)
         bookName = event.GetString()
-        books = CreateDatabase().findByBookName(session, bookName)
-        self.gridActivity(bookName, books)
+        self.books = CreateDatabase().findByBookName(session, bookName)
+        books = self.books
+        self.gridActivity(bookName, self.books)
         logger.info('EvtText: %s\n' % event.GetString())  
         
 class MyPopupMenu(wx.Menu):
@@ -705,12 +913,11 @@ class EventsHandler() :
 
 def main():
     session = CreateDatabase().creatingDatabase()
-    CreateDatabase().addingData(session)
+#     CreateDatabase().addingData(session)
     books = CreateDatabase().findAllBook(session)
     bookName = 'Tinkering'
     global books, frame
     books = CreateDatabase().findByBookName(session, bookName)
-    print books
     app = wx.App(0)
     frame = MainWindow(None, "My Calibre")
     app.MainLoop()    
