@@ -6,7 +6,7 @@ from sqlalchemy import Column, DateTime, String, Integer, ForeignKey, func, \
     create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, backref, sessionmaker
-from wx.html import HtmlWindow
+from wx.html import HtmlWindow, HW_DEFAULT_STYLE
 import json
 import logging
 import math
@@ -18,6 +18,7 @@ import wx.lib.agw.aui as aui
 import wx.lib.mixins.gridlabelrenderer as glr
 import wx
 import wx.webkit
+import wx.html
  
 Base = declarative_base()
 
@@ -131,7 +132,7 @@ class CreateDatabase:
         
         
         session.configure(bind=engine)
-#         Base.metadata.drop_all(engine)
+        Base.metadata.drop_all(engine)
         
         Base.metadata.create_all(engine)
 #         metadata = Base.metadata
@@ -141,9 +142,15 @@ class CreateDatabase:
         return session
         
     def addingData(self, session):
-        directory_name = '/home/vijay/Documents/Aptana_Workspace/Better/seleniumone/books'
-        listOfDir = os.listdir(directory_name)
-        listOfDir.sort(key=int)
+#         directory_name = '/home/vijay/Documents/Aptana_Workspace/Better/seleniumone/books'
+        directory_name = os.path.join(os.getcwd(), 'books')
+        os.chdir(directory_name)
+#         os.mkdir(os.path.join( os.getcwd(),'books'))
+        print directory_name
+        listOfDir = [ name for name in os.listdir(directory_name) if os.path.isdir(os.path.join(directory_name, name)) ]
+        print listOfDir
+        if listOfDir:
+            listOfDir.sort(key=int)
         one = ''
         # create a Session
         sess = session()
@@ -156,6 +163,8 @@ class CreateDatabase:
             rep = ''
             for line in file:
                 rep = rep + line
+                
+            print rep
             file.close
             # print str(rep)
             b = json.loads(rep)
@@ -268,7 +277,7 @@ class TabPanel(wx.Panel):
     This will be the first notebook tab
     """
     def _init_ctrls(self, prnt):
-        wx.Panel.__init__(self, style=wx.TAB_TRAVERSAL | wx.NO_BORDER, name='', parent=prnt, pos=(0,0), size=wx.Size(200, 100))
+        wx.Panel.__init__(self, style=wx.TAB_TRAVERSAL | wx.NO_BORDER, name='', parent=prnt, pos=(0, 0), size=wx.Size(200, 100))
 
 #     def __init__(self, parent, id, pos, size, style, name):
 #         self._init_ctrls(parent)
@@ -300,35 +309,25 @@ class MainBookTab(aui.AuiNotebook):
     """
     Notebook class
     """
+    DEFAULT_STYLE = aui.AUI_NB_MIDDLE_CLICK_CLOSE | \
+                   aui.AUI_NB_CLOSE_ON_ACTIVE_TAB | \
+                   aui.AUI_NB_SCROLL_BUTTONS | \
+                   aui.AUI_NB_TAB_MOVE | \
+                   aui.AUI_NB_TAB_SPLIT | \
+                   aui.AUI_NB_TOP | \
+                   wx.NO_BORDER
+    
+    directory_name = os.path.join(os.getcwd(), 'books', '1', 'book.jpg')
+    print directory_name
     defaultPage = ''' 
     <!DOCTYPE html>
 <html>
-    <head>
-        <style>
-            div.img {
-                height: auto;
-                width: auto;
-                float: left;
-            }
-
-            div.img img {
-                display: inline;
-            }
-
-            div.img a:hover img {
-            }
-
-            div.desc {
-                font-weight: normal;
-                width: 120px;
-            }
-        </style>
-    </head>
+    
     <body>
-            <a target="_blank" href="klematis_big.htm"><img src="/home/vijay/Documents/Aptana_Workspace/Better/seleniumone/books/1/a_peek_at_computer_electronics.jpg" alt="Professional Java for Web Applications" title="Professional Java for Web Applications" width="200" ></a>
-            <a target="_blank" href="klematis2_big.htm"><img src="/home/vijay/Documents/Aptana_Workspace/Better/seleniumone/books/1/a_peek_at_computer_electronics.jpg" alt="Professional Java for Web Applications" title="Professional Java for Web Applications" width="200" ></a>
-            <a target="_blank" href="klematis3_big.htm"><img src="/home/vijay/Documents/Aptana_Workspace/Better/seleniumone/books/1/a_peek_at_computer_electronics.jpg" alt="Professional Java for Web Applications" title="Professional Java for Web Applications" width="200" ></a>
-            <a target="_blank" href="klematis4_big.htm"><img src="/home/vijay/Documents/Aptana_Workspace/Better/seleniumone/books/1/a_peek_at_computer_electronics.jpg" alt="Professional Java for Web Applications" title="Professional Java for Web Applications" width="200" ></a>
+            <a target="_blank" href="klematis_big.htm"><img src="''' + directory_name + '''" alt="Professional Java for Web Applications" title="Professional Java for Web Applications" width="200" ></a>
+            <a target="_blank" href="klematis2_big.htm"><img src="''' + directory_name + '''" alt="Professional Java for Web Applications" title="Professional Java for Web Applications" width="200" ></a>
+            <a target="_blank" href="klematis3_big.htm"><img src="''' + directory_name + '''" alt="Professional Java for Web Applications" title="Professional Java for Web Applications" width="200" ></a>
+            <a target="_blank" href="klematis4_big.htm"><img src="''' + directory_name + '''" alt="Professional Java for Web Applications" title="Professional Java for Web Applications" width="200" ></a>
 
     </body>
 </html>
@@ -341,27 +340,29 @@ class MainBookTab(aui.AuiNotebook):
         self.default_style = aui.AUI_NB_DEFAULT_STYLE | aui.AUI_NB_TAB_EXTERNAL_MOVE | wx.NO_BORDER
         self.SetWindowStyleFlag(self.default_style)
         
-        il = wx.ImageList(16, 16)  # the (16, 16) is the size in pixels of the images
-        img0 = il.Add(wx.Bitmap('icons/art.ico', wx.BITMAP_TYPE_ICO))
-#         img1 = il.Add(wx.Bitmap('art/icons/main.ico', wx.BITMAP_TYPE_ICO))
-#         img2 = il.Add(wx.Bitmap('art/icons/numbering.ico', wx.BITMAP_TYPE_ICO))
-#         img3 = il.Add(wx.Bitmap('art/icons/date_time.ico', wx.BITMAP_TYPE_ICO))
-#         img4 = il.Add(wx.Bitmap('art/icons/errors.png', wx.BITMAP_TYPE_PNG))
-        self.SetPageImage(0, img0)
         # Create the first tab and add it to the notebook
         self.gallery = TabPanel(self)
-        html = wx.html.HtmlWindow(self.gallery, id=wx.ID_ANY, pos=(0, 0), size=(1002, 1010))
+        
+        html = wx.html.HtmlWindow(self.gallery, id=wx.ID_ANY, pos=wx.DefaultPosition, size=(800, 800), style=HW_DEFAULT_STYLE)
         self.gallery.SetDoubleBuffered(True)
 #         self.t = wx.StaticText(self.tabTwo , -1, "This is a PageOne object", (20,20))
 #         html = wx.html.HtmlWindow(self.tabTwo, pos=(20,20))
         html.SetPage(self.defaultPage)
+        html.GetBestSize()
         
         
         self.tabOne = TabPanel(self)
         self.tabOne.addItems()
 #         tabOne.SetBackgroundColour("Gray")
         self.AddPage(self.tabOne, "Books")
-        self.AddPage(self.gallery, "Gallery")
+        page_bmp = wx.ArtProvider.GetBitmap(wx.ART_INFORMATION, wx.ART_OTHER,
+                                                wx.Size(16, 16))
+        self.AddPage(self.gallery, "Gallery", False, page_bmp)
+        style = self.DEFAULT_STYLE    
+
+        self.SetWindowStyleFlag(style)
+        self.SetArtProvider(aui.AuiDefaultTabArt())
+
         pass
   
 
@@ -371,6 +372,7 @@ class MainGrid(wx.grid.Grid):
 #         self.grid = wx.grid.Grid(self)
         global books
         self.books = books
+        numOfRows = 0
         if self.books:
             numOfRows = len(self.books)
             print 'numOfRows:', numOfRows
@@ -428,12 +430,29 @@ class MainGrid(wx.grid.Grid):
         menu = wx.Menu()
         # Show how to put an icon in the menu
         item = wx.MenuItem(menu, self.popupID1, "Open book detail in New Tab.")
-        item.SetBitmap(wx.Bitmap('icons/rectangle.png'))
+        item.SetBitmap(wx.ArtProvider.GetBitmap(wx.ART_FILE_OPEN, wx.ART_MENU, (16,16)))
         menu.AppendItem(item)
-        menu.Append(self.popupID2, "Open containing folder.")
-        menu.Append(self.popupID3, "Search similar books.")
-        menu.Append(self.popupID4, "Properties.")
-        menu.Append(self.popupID5, "Open Book")
+        
+        item = wx.MenuItem(menu, self.popupID2, "Open containing folder.")
+        item.SetBitmap(wx.ArtProvider.GetBitmap(wx.ART_FOLDER_OPEN, wx.ART_MENU, (16,16)))
+        menu.AppendItem(item)
+        
+        item = wx.MenuItem(menu, self.popupID3, "Search similar books.")
+        item.SetBitmap(wx.ArtProvider.GetBitmap(wx.ART_FOLDER_OPEN, wx.ART_MENU, (16,16)))
+        menu.AppendItem(item)
+        
+        item = wx.MenuItem(menu, self.popupID4,"Properties." )
+        item.SetBitmap(wx.ArtProvider.GetBitmap(wx.ART_INFORMATION, wx.ART_MENU, (16,16)))
+        menu.AppendItem(item)
+        
+        item = wx.MenuItem(menu, self.popupID5,  "Open Book")
+        item.SetBitmap(wx.ArtProvider.GetBitmap(wx.ART_HELP_BOOK, wx.ART_MENU, (16,16)))
+        menu.AppendItem(item)
+        
+#         menu.Append(self.popupID2, "Open containing folder.")
+#         menu.Append(self.popupID3, "Search similar books.")
+#         menu.Append(self.popupID4, "Properties.")
+#         menu.Append(self.popupID5, "Open Book")
  
         # Popup the menu.  If an item is selected then its handler
         # will be called before PopupMenu returns.
@@ -446,7 +465,9 @@ class MainGrid(wx.grid.Grid):
         logger.info("Popup one\n")
         tabTitle = self.Parent.grid.GetCellValue(self.rowSelected, 0)
         path = self.Parent.grid.GetCellValue(self.rowSelected, 6)
-        for sName in os.listdir(path):
+        listOfDirPath = [ name for name in os.listdir(path) if os.path.isdir(os.path.join(path, name)) ]
+        self.path = ''
+        for sName in listOfDirPath:
             if 'jpg' == sName.split('.')[-1:][0]:
                 self.path = path + '/' + sName
                 print self.path
@@ -474,7 +495,7 @@ class MainGrid(wx.grid.Grid):
 
 
         self.tabTwo = TabPanel(self.Parent.Parent)
-        html = wx.html.HtmlWindow(self.tabTwo, id=wx.ID_ANY, pos=(0, 0), size=(802, 610))
+        html = wx.html.HtmlWindow(self.tabTwo, id=wx.ID_ANY, pos=(0, 0), size=wx.DisplaySize())
         
 #         html =  wx.webkit.web(self.tabTwo, id=wx.ID_ANY, pos=(0,0), size=(802,610))
         if 'gtk2' in wx.PlatformInfo:
@@ -541,7 +562,7 @@ class MyCornerLabelRenderer(glr.GridLabelRenderer):
 class MainWindow(wx.Frame):
 
     def __init__(self, parent, title, *args, **kwargs):
-        super(MainWindow, self).__init__(parent, title=title, size=(1000, 1780))
+        super(MainWindow, self).__init__(parent, title=title, size=wx.DisplaySize())
         self.frmPanel = wx.Panel(self)
         global books
         self.books = books
@@ -596,7 +617,8 @@ class MainWindow(wx.Frame):
                         elif 'check' == childValue[1]:
                             kind_value = wx.ITEM_CHECK
                         item = topLevelMenu.Append(i * 10 + j, childValue[0], childValue[0], kind=kind_value)
-                        item.SetBitmap(wx.Bitmap('icons/rectangle.png'))
+                        bmp = wx.ArtProvider_GetBitmap(wx.ART_FIND, wx.ART_OTHER, (16, 16))
+                        item.SetBitmap(bmp)
                         if 'check' == childValue[1]:
                             item.Check()
                         
@@ -674,7 +696,8 @@ class MainWindow(wx.Frame):
 
         self.frmPanel.SetSizer(vBox)
         self.frmPanel.Layout()
-        self.SetSize((1000, 1780))
+        x, y = wx.DisplaySize()
+        self.SetSize((x, y - 40))
         
         self.SetTitle('Better Calibre')
         self.Centre()
@@ -912,11 +935,11 @@ class EventsHandler() :
 # end Events class
 
 def main():
-    session = CreateDatabase().creatingDatabase()
-#     CreateDatabase().addingData(session)
-    books = CreateDatabase().findAllBook(session)
-    bookName = 'Tinkering'
     global books, frame
+    session = CreateDatabase().creatingDatabase()
+    CreateDatabase().addingData(session)
+    books = CreateDatabase().findAllBook(session)
+    bookName = 'A Peek at Computer Electronics'
     books = CreateDatabase().findByBookName(session, bookName)
     app = wx.App(0)
     frame = MainWindow(None, "My Calibre")
