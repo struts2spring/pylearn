@@ -330,7 +330,7 @@ class MainBookTab(aui.AuiNotebook):
         # Create the first tab and add it to the notebook
         self.gallery = TabPanel(self)
         
-        html = wx.html.HtmlWindow(self.gallery, id=wx.ID_ANY, pos=wx.DefaultPosition, size=(800, 800), style=HW_DEFAULT_STYLE)
+        html = wx.html.HtmlWindow(self.gallery, id=wx.ID_ANY, pos=wx.DefaultPosition, size=wx.DisplaySize(), style=HW_DEFAULT_STYLE)
         self.gallery.SetDoubleBuffered(True)
 #         self.t = wx.StaticText(self.tabTwo , -1, "This is a PageOne object", (20,20))
 #         html = wx.html.HtmlWindow(self.tabTwo, pos=(20,20))
