@@ -126,8 +126,10 @@ class AuthorBookLink(Base):
 class CreateDatabase:
     
     def creatingDatabase(self):
+        directory_name = os.path.join(os.getcwd(), 'books')
+        os.chdir(directory_name)
         # engine = create_engine('sqlite:///calibre.sqlite', echo=True)
-        engine = create_engine('sqlite:///calibre.sqlite', echo=False)
+        engine = create_engine('sqlite:///calibre.sqlite')
         session = sessionmaker()
         
         
@@ -135,20 +137,13 @@ class CreateDatabase:
         Base.metadata.drop_all(engine)
         
         Base.metadata.create_all(engine)
-#         metadata = Base.metadata
-#         for t in metadata.sorted_tables:
-#             print t.name
-#         pass
+
         return session
         
     def addingData(self, session):
-#         directory_name = '/home/vijay/Documents/Aptana_Workspace/Better/seleniumone/books'
-        directory_name = os.path.join(os.getcwd(), 'books')
+        directory_name = os.getcwd()
         os.chdir(directory_name)
-#         os.mkdir(os.path.join( os.getcwd(),'books'))
-        print directory_name
         listOfDir = [ name for name in os.listdir(directory_name) if os.path.isdir(os.path.join(directory_name, name)) ]
-        print listOfDir
         if listOfDir:
             listOfDir.sort(key=int)
         one = ''
@@ -164,7 +159,6 @@ class CreateDatabase:
             for line in file:
                 rep = rep + line
                 
-            print rep
             file.close
             # print str(rep)
             b = json.loads(rep)
@@ -279,15 +273,9 @@ class TabPanel(wx.Panel):
     def _init_ctrls(self, prnt):
         wx.Panel.__init__(self, style=wx.TAB_TRAVERSAL | wx.NO_BORDER, name='', parent=prnt, pos=(0, 0), size=wx.Size(200, 100))
 
-#     def __init__(self, parent, id, pos, size, style, name):
-#         self._init_ctrls(parent)
     #----------------------------------------------------------------------
     def __init__(self, parent):
         """"""
-        # list containing notebook images:
-        # .ico seem to be more OS portable 
-    
-     
         wx.Panel.__init__(self, parent=parent, id=wx.ID_ANY)
         
         
@@ -318,7 +306,6 @@ class MainBookTab(aui.AuiNotebook):
                    wx.NO_BORDER
     
     directory_name = os.path.join(os.getcwd(), 'books', '1', 'book.jpg')
-    print directory_name
     defaultPage = ''' 
     <!DOCTYPE html>
 <html>
@@ -354,10 +341,12 @@ class MainBookTab(aui.AuiNotebook):
         self.tabOne = TabPanel(self)
         self.tabOne.addItems()
 #         tabOne.SetBackgroundColour("Gray")
-        self.AddPage(self.tabOne, "Books")
-        page_bmp = wx.ArtProvider.GetBitmap(wx.ART_INFORMATION, wx.ART_OTHER,
+        bookImage = wx.ArtProvider.GetBitmap(wx.ART_HELP_BOOK , wx.ART_OTHER,
+                                                       wx.Size(16, 16))
+        self.AddPage(self.tabOne, "Books", False, bookImage)
+        galleryImage = wx.ArtProvider.GetBitmap(wx.ART_INFORMATION, wx.ART_OTHER,
                                                 wx.Size(16, 16))
-        self.AddPage(self.gallery, "Gallery", False, page_bmp)
+        self.AddPage(self.gallery, "Gallery", False, galleryImage)
         style = self.DEFAULT_STYLE    
 
         self.SetWindowStyleFlag(style)
@@ -377,6 +366,7 @@ class MainGrid(wx.grid.Grid):
             numOfRows = len(self.books)
             print 'numOfRows:', numOfRows
         self.CreateGrid(numOfRows, 10)
+        self.SetRowLabelSize(30)
         self.Bind(wx.grid.EVT_GRID_CELL_RIGHT_CLICK, self.showPopupMenu)
         self.SetColSize(0, 320)
         self.SetColSize(1, 220)
@@ -470,7 +460,6 @@ class MainGrid(wx.grid.Grid):
         for sName in listOfDirPath:
             if 'jpg' == sName.split('.')[-1:][0]:
                 self.path = path + '/' + sName
-                print self.path
                 
         self.page = '''
             <html>
@@ -506,7 +495,6 @@ class MainGrid(wx.grid.Grid):
         html.SetPage(self.page)
 #         self.tabTwo.addHtml()
         self.Parent.Parent.AddPage(self.tabTwo, tabTitle)
-        print 'tab creating'
     
     def OpenBook(self, event):
         logger.info("OpenBook\n")
