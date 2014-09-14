@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 
 
+
+from ThumbCrtl import ThumbnailCtrl, NativeImageHandler
 from sqlalchemy import Column, DateTime, String, Integer, ForeignKey, func, \
     create_engine
 from sqlalchemy.ext.declarative import declarative_base
@@ -9,20 +11,19 @@ from sqlalchemy.orm import relationship, backref, sessionmaker
 from wx.html import HtmlWindow, HW_DEFAULT_STYLE
 import json
 import logging
-import math
 import os
 import sys
 import time
 import wx.grid
+import wx.html
 import wx.lib.agw.aui as aui
 import wx.lib.mixins.gridlabelrenderer as glr
-import wx
-import wx.webkit
-import wx.html
+
+sys.settrace
  
 Base = declarative_base()
 
-
+directory_name = os.path.join(os.getcwd())
 
 # set up logging to file - see previous section for more details
 logging.basicConfig(level=logging.DEBUG,
@@ -134,7 +135,7 @@ class CreateDatabase:
         
         
         session.configure(bind=engine)
-        Base.metadata.drop_all(engine)
+#         Base.metadata.drop_all(engine)
         
         Base.metadata.create_all(engine)
 
@@ -330,29 +331,38 @@ class MainBookTab(aui.AuiNotebook):
         # Create the first tab and add it to the notebook
         self.gallery = TabPanel(self)
         
-        html = wx.html.HtmlWindow(self.gallery, id=wx.ID_ANY, pos=wx.DefaultPosition, size=wx.DisplaySize(), style=HW_DEFAULT_STYLE)
-        self.gallery.SetDoubleBuffered(True)
-#         self.t = wx.StaticText(self.tabTwo , -1, "This is a PageOne object", (20,20))
-#         html = wx.html.HtmlWindow(self.tabTwo, pos=(20,20))
-        html.SetPage(self.defaultPage)
-        html.GetBestSize()
+#         html = wx.html.HtmlWindow(self.gallery, id=wx.ID_ANY, pos=wx.DefaultPosition, size=wx.DisplaySize(), style=HW_DEFAULT_STYLE)
+# #         html.HW_SCROLLBAR_AUTO
+#         html.SetBackgroundColour("yellow")
+#         self.gallery.SetDoubleBuffered(True)
+# #         self.t = wx.StaticText(self.tabTwo , -1, "This is a PageOne object", (20,20))
+# #         html = wx.html.HtmlWindow(self.tabTwo, pos=(20,20))
+#         html.SetPage(self.defaultPage)
+#         html.GetBestSize()
+
+        self.sizer = wx.BoxSizer(wx.VERTICAL)
+        self.thumbnail = ThumbnailCtrl(self.gallery, imagehandler=NativeImageHandler)
+        print os.getcwd()
+        global books
+        self.books=books
         
+        self.thumbnail.ShowDir(books)
+        self.sizer.Add(self.thumbnail, 1, wx.EXPAND | wx.ALL, 10)
+#         self.gallery.addItems(self.thumbnail)
+        self.gallery.SetSizer(self.sizer)
         
         self.tabOne = TabPanel(self)
         self.tabOne.addItems()
 #         tabOne.SetBackgroundColour("Gray")
-        bookImage = wx.ArtProvider.GetBitmap(wx.ART_HELP_BOOK , wx.ART_OTHER,
-                                                       wx.Size(16, 16))
-        self.AddPage(self.tabOne, "Books", False, bookImage)
-        galleryImage = wx.ArtProvider.GetBitmap(wx.ART_INFORMATION, wx.ART_OTHER,
-                                                wx.Size(16, 16))
+        bookImage = wx.ArtProvider.GetBitmap(wx.ART_HELP_BOOK , wx.ART_OTHER, wx.Size(16, 16))
+        galleryImage = wx.ArtProvider.GetBitmap(wx.ART_INFORMATION, wx.ART_OTHER, wx.Size(16, 16))
         self.AddPage(self.gallery, "Gallery", False, galleryImage)
+        self.AddPage(self.tabOne, "Books", False, bookImage)
         style = self.DEFAULT_STYLE    
 
         self.SetWindowStyleFlag(style)
         self.SetArtProvider(aui.AuiDefaultTabArt())
 
-        pass
   
 
 class MainGrid(wx.grid.Grid):
@@ -500,6 +510,7 @@ class MainGrid(wx.grid.Grid):
         logger.info("OpenBook\n")
         print self.rowSelected
 #         self.grid=self.mainBookTab.tabOne.grid  
+        print 'directory_name:',directory_name 
         FILE_NAME = ''
         FILE_NAME = "/home/vijay/Documents/Aptana_Workspace/Better/seleniumone/books/3082/Tinkering.pdf"
         # self.
@@ -696,56 +707,57 @@ class MainWindow(wx.Frame):
         self.grid = self.mainBookTab.tabOne.grid      
         print 'updating'
         
-        print "1", self.grid.GetChildren()
-        print "2", self.grid.GetCellValue(0, 0)
         self.grid.ForceRefresh()
         availableRows = self.grid.GetNumberRows()
         totalRows = len(books)
         self.grid.ClearGrid()
-        self.grid.ForceRefresh()
+#         self.grid.ForceRefresh()
         self.grid.ClearGrid
-        if totalRows > availableRows :
-            try:
-                self.grid.AppendRows(totalRows - availableRows)
-            except:
-                print 'one'
-                
-        elif totalRows < availableRows:
-            print 'one_1'
-            try:
-                self.grid.BeginBatch()
-                self.grid.DeleteRows(0, availableRows - totalRows, True)
-                self.grid.EndBatch()
-            except:
-                print 'exception one_1'
-        else:
-            print 'one_2_'
-            self.grid.DeleteRows(0, availableRows, True)
-            self.grid.AppendRows(totalRows)
-        rowNum = 0
-#         color = (100,100,255)
-        color = 'light gray'
-        attr = self.cellAttr = wx.grid.GridCellAttr()
-        attr.SetBackgroundColour(color)
-        print 'totalRows', totalRows
-        print 'availableRows', availableRows
-        
-        for book in books:
-            if rowNum % 2 == 0:
-                for i in range(10):
-                    self.grid.SetAttr(rowNum, i, attr)
-            self.grid.SetCellValue(rowNum, 0, book.bookName)
-            self.grid.SetCellValue(rowNum, 1, book.authors[0].authorName)
-            self.grid.SetCellValue(rowNum, 2, book.publisher)
-            self.grid.SetCellValue(rowNum, 3, book.isbn_13)
-            if book.fileSize:
-                self.grid.SetCellValue(rowNum, 4, book.fileSize)
+        try:
+            
+            if totalRows > availableRows :
+                try:
+                    self.grid.AppendRows(totalRows - availableRows)
+                except:
+                    print 'one'
+                    
+            elif totalRows < availableRows:
+                print 'one_1'
+                try:
+                    self.grid.BeginBatch()
+                    self.grid.DeleteRows(0, availableRows - totalRows, True)
+                    self.grid.EndBatch()
+                except:
+                    print 'exception one_1'
             else:
-                self.grid.SetCellValue(rowNum, 4, '0')
-            self.grid.SetCellValue(rowNum, 5, book.bookFormat)
-            self.grid.SetCellValue(rowNum, 6, book.bookPath)
-            rowNum = rowNum + 1
-    pass
+                print 'one_2_'
+                self.grid.DeleteRows(0, availableRows, True)
+                self.grid.AppendRows(totalRows)
+            rowNum = 0
+    #         color = (100,100,255)
+            color = 'light gray'
+            attr = self.cellAttr = wx.grid.GridCellAttr()
+            attr.SetBackgroundColour(color)
+            print 'totalRows', totalRows
+            print 'availableRows', availableRows
+            
+            for book in books:
+                if rowNum % 2 == 0:
+                    for i in range(10):
+                        self.grid.SetAttr(rowNum, i, attr)
+                self.grid.SetCellValue(rowNum, 0, book.bookName)
+                self.grid.SetCellValue(rowNum, 1, book.authors[0].authorName)
+                self.grid.SetCellValue(rowNum, 2, book.publisher)
+                self.grid.SetCellValue(rowNum, 3, book.isbn_13)
+                if book.fileSize:
+                    self.grid.SetCellValue(rowNum, 4, book.fileSize)
+                else:
+                    self.grid.SetCellValue(rowNum, 4, '0')
+                self.grid.SetCellValue(rowNum, 5, book.bookFormat)
+                self.grid.SetCellValue(rowNum, 6, book.bookPath)
+                rowNum = rowNum + 1
+        except:
+            print 'somthing wrong with grid'
        
     def onView(self):
         filepath = self.photoTxt.GetValue()
@@ -865,6 +877,8 @@ class MainWindow(wx.Frame):
         bookName = event.GetString()
         self.books = CreateDatabase().findByBookName(session, bookName)
         books = self.books
+        self.thumbnail = self.mainBookTab.thumbnail
+        self.thumbnail.ShowDir(books)
         self.gridActivity(bookName, self.books)
         logger.info('EvtText: %s\n' % event.GetString())  
         
@@ -925,9 +939,9 @@ class EventsHandler() :
 def main():
     global books, frame
     session = CreateDatabase().creatingDatabase()
-    CreateDatabase().addingData(session)
+#     CreateDatabase().addingData(session)
     books = CreateDatabase().findAllBook(session)
-    bookName = 'A Peek at Computer Electronics'
+    bookName = 'java'
     books = CreateDatabase().findByBookName(session, bookName)
     app = wx.App(0)
     frame = MainWindow(None, "My Calibre")
