@@ -18,6 +18,9 @@ import wx.grid
 import wx.html
 import wx.lib.agw.aui as aui
 import wx.lib.mixins.gridlabelrenderer as glr
+import wx.grid             as  gridlib
+import wx.lib.gridmovers   as  gridmovers
+
 
 sys.settrace
  
@@ -305,23 +308,7 @@ class MainBookTab(aui.AuiNotebook):
                    aui.AUI_NB_TAB_SPLIT | \
                    aui.AUI_NB_TOP | \
                    wx.NO_BORDER
-    
-    directory_name = os.path.join(os.getcwd(), 'books', '1', 'book.jpg')
-    defaultPage = ''' 
-    <!DOCTYPE html>
-<html>
-    
-    <body>
-            <a target="_blank" href="klematis_big.htm"><img src="''' + directory_name + '''" alt="Professional Java for Web Applications" title="Professional Java for Web Applications" width="200" ></a>
-            <a target="_blank" href="klematis2_big.htm"><img src="''' + directory_name + '''" alt="Professional Java for Web Applications" title="Professional Java for Web Applications" width="200" ></a>
-            <a target="_blank" href="klematis3_big.htm"><img src="''' + directory_name + '''" alt="Professional Java for Web Applications" title="Professional Java for Web Applications" width="200" ></a>
-            <a target="_blank" href="klematis4_big.htm"><img src="''' + directory_name + '''" alt="Professional Java for Web Applications" title="Professional Java for Web Applications" width="200" ></a>
-
-    </body>
-</html>
-
-    '''
-    #----------------------------------------------------------------------
+#----------------------------------------------------------------------
     def __init__(self, parent):
         """Constructor"""
         aui.AuiNotebook.__init__(self, parent=parent)
@@ -344,7 +331,7 @@ class MainBookTab(aui.AuiNotebook):
         self.thumbnail = ThumbnailCtrl(self.gallery, imagehandler=NativeImageHandler)
         print os.getcwd()
         global books
-        self.books=books
+        self.books = books
         
         self.thumbnail.ShowDir(books)
         self.sizer.Add(self.thumbnail, 1, wx.EXPAND | wx.ALL, 10)
@@ -363,6 +350,157 @@ class MainBookTab(aui.AuiNotebook):
         self.SetWindowStyleFlag(style)
         self.SetArtProvider(aui.AuiDefaultTabArt())
 
+ 
+
+#---------------------------------------------------------------------------
+
+class CustomDataTable(gridlib.PyGridTableBase):
+    def __init__(self, log):
+        gridlib.PyGridTableBase.__init__(self)
+        self.log = log
+
+        self.identifiers = ['id', 'ds', 'sv', 'pr', 'pl', 'op', 'fx', 'ts']
+
+        self.rowLabels = ['Row1', 'Row2', 'Row3']
+
+        self.colLabels = {'id':'ID', 'ds':'Description', 'sv':'Severity',
+                          'pr':'Priority', 'pl':'Platform', 'op':'Opened?',
+                          'fx':'Fixed?', 'ts':'Tested?'}
+
+        self.data = [{'id':1010,
+                      'ds':"The foo doesn't bar",
+                      'sv':"major",
+                      'pr':1,
+                      'pl':'MSW',
+                      'op':1,
+                      'fx':1,
+                      'ts':1
+                      },
+                     {'id':1011,
+                      'ds':"I've got a wicket in my wocket",
+                      'sv':"wish list",
+                      'pr':2,
+                      'pl':'other',
+                      'op':0,
+                      'fx':0,
+                      'ts':0
+                      },
+                     {'id':1012,
+                      'ds':"Rectangle() returns a triangle",
+                      'sv':"critical",
+                      'pr':5,
+                      'pl':'all',
+                      'op':0,
+                      'fx':0,
+                      'ts':0
+                      }
+                     ]
+
+    #--------------------------------------------------
+    # required methods for the wxPyGridTableBase interface
+
+    def GetNumberRows(self):
+        return len(self.data)
+
+    def GetNumberCols(self):
+        return len(self.identifiers)
+
+    def IsEmptyCell(self, row, col):
+        id = self.identifiers[col]
+        return not self.data[row][id]
+
+    def GetValue(self, row, col):
+        id = self.identifiers[col]
+        return self.data[row][id]
+
+    def SetValue(self, row, col, value):
+        id = self.identifiers[col]
+        self.data[row][id] = value
+
+    #--------------------------------------------------
+    # Some optional methods
+
+    # Called when the grid needs to display column labels
+    def GetColLabelValue(self, col):
+        id = self.identifiers[col]
+        return self.colLabels[id]
+
+    # Called when the grid needs to display row labels
+    def GetRowLabelValue(self, row):
+        return self.rowLabels[row]
+
+    #--------------------------------------------------
+    # Methods added for demo purposes.
+
+    # The physical moving of the cols/rows is left to the implementer.
+    # Because of the dynamic nature of a wxGrid the physical moving of
+    # columns differs from implementation to implementation
+
+    # Move the column
+    def MoveColumn(self, frm, to):
+        grid = self.GetView()
+
+        if grid:
+            # Move the identifiers
+            old = self.identifiers[frm]
+            del self.identifiers[frm]
+
+            if to > frm:
+                self.identifiers.insert(to - 1, old)
+            else:
+                self.identifiers.insert(to, old)
+
+            # Notify the grid
+            grid.BeginBatch()
+            msg = gridlib.GridTableMessage(
+                    self, gridlib.GRIDTABLE_NOTIFY_COLS_DELETED, frm, 1
+                    )
+                    
+            grid.ProcessTableMessage(msg)
+            
+            msg = gridlib.GridTableMessage(
+                    self, gridlib.GRIDTABLE_NOTIFY_COLS_INSERTED, to, 1
+                    )
+
+            grid.ProcessTableMessage(msg)
+            grid.EndBatch()
+
+    # Move the row
+    def MoveRow(self, frm, to):
+        grid = self.GetView()
+
+        if grid:
+            # Move the rowLabels and data rows
+            oldLabel = self.rowLabels[frm]
+            oldData = self.data[frm]
+            del self.rowLabels[frm]
+            del self.data[frm]
+
+            if to > frm:
+                self.rowLabels.insert(to - 1, oldLabel)
+                self.data.insert(to - 1, oldData)
+            else:
+                self.rowLabels.insert(to, oldLabel)
+                self.data.insert(to, oldData)
+
+            # Notify the grid
+            grid.BeginBatch()
+
+            msg = gridlib.GridTableMessage(
+                    self, gridlib.GRIDTABLE_NOTIFY_ROWS_DELETED, frm, 1
+                    )
+
+            grid.ProcessTableMessage(msg)
+
+            msg = gridlib.GridTableMessage(
+                    self, gridlib.GRIDTABLE_NOTIFY_ROWS_INSERTED, to, 1
+                    )
+
+            grid.ProcessTableMessage(msg)
+            grid.EndBatch()
+
+
+#---------------------------------------------------------------------------
   
 
 class MainGrid(wx.grid.Grid):
@@ -376,6 +514,11 @@ class MainGrid(wx.grid.Grid):
             numOfRows = len(self.books)
             print 'numOfRows:', numOfRows
         self.CreateGrid(numOfRows, 10)
+        
+        # Enable Column moving
+        gridmovers.GridColMover(self)
+        self.Bind(gridmovers.EVT_GRID_COL_MOVE, self.OnColMove, self)
+        
         self.SetRowLabelSize(30)
         self.Bind(wx.grid.EVT_GRID_CELL_RIGHT_CLICK, self.showPopupMenu)
         self.SetColSize(0, 320)
@@ -430,23 +573,23 @@ class MainGrid(wx.grid.Grid):
         menu = wx.Menu()
         # Show how to put an icon in the menu
         item = wx.MenuItem(menu, self.popupID1, "Open book detail in New Tab.")
-        item.SetBitmap(wx.ArtProvider.GetBitmap(wx.ART_FILE_OPEN, wx.ART_MENU, (16,16)))
+        item.SetBitmap(wx.ArtProvider.GetBitmap(wx.ART_FILE_OPEN, wx.ART_MENU, (16, 16)))
         menu.AppendItem(item)
         
         item = wx.MenuItem(menu, self.popupID2, "Open containing folder.")
-        item.SetBitmap(wx.ArtProvider.GetBitmap(wx.ART_FOLDER_OPEN, wx.ART_MENU, (16,16)))
+        item.SetBitmap(wx.ArtProvider.GetBitmap(wx.ART_FOLDER_OPEN, wx.ART_MENU, (16, 16)))
         menu.AppendItem(item)
         
         item = wx.MenuItem(menu, self.popupID3, "Search similar books.")
-        item.SetBitmap(wx.ArtProvider.GetBitmap(wx.ART_FOLDER_OPEN, wx.ART_MENU, (16,16)))
+        item.SetBitmap(wx.ArtProvider.GetBitmap(wx.ART_FOLDER_OPEN, wx.ART_MENU, (16, 16)))
         menu.AppendItem(item)
         
-        item = wx.MenuItem(menu, self.popupID4,"Properties." )
-        item.SetBitmap(wx.ArtProvider.GetBitmap(wx.ART_INFORMATION, wx.ART_MENU, (16,16)))
+        item = wx.MenuItem(menu, self.popupID4, "Properties.")
+        item.SetBitmap(wx.ArtProvider.GetBitmap(wx.ART_INFORMATION, wx.ART_MENU, (16, 16)))
         menu.AppendItem(item)
         
-        item = wx.MenuItem(menu, self.popupID5,  "Open Book")
-        item.SetBitmap(wx.ArtProvider.GetBitmap(wx.ART_HELP_BOOK, wx.ART_MENU, (16,16)))
+        item = wx.MenuItem(menu, self.popupID5, "Open Book")
+        item.SetBitmap(wx.ArtProvider.GetBitmap(wx.ART_HELP_BOOK, wx.ART_MENU, (16, 16)))
         menu.AppendItem(item)
         
 #         menu.Append(self.popupID2, "Open containing folder.")
@@ -461,6 +604,45 @@ class MainGrid(wx.grid.Grid):
  
     
 
+        # Event method called when a column move needs to take place
+    def OnColMove(self,evt):
+        frm = evt.GetMoveColumn()       # Column being moved
+        to = evt.GetBeforeColumn()      # Before which column to insert
+        
+        print 'frm',frm
+        print 'to',to
+        grid = self.GetView()
+
+        if grid:
+            # Move the rowLabels and data rows
+            oldLabel = self.rowLabels[frm]
+            oldData = self.data[frm]
+            del self.rowLabels[frm]
+            del self.data[frm]
+
+            if to > frm:
+                self.rowLabels.insert(to-1,oldLabel)
+                self.data.insert(to-1,oldData)
+            else:
+                self.rowLabels.insert(to,oldLabel)
+                self.data.insert(to,oldData)
+
+            # Notify the grid
+            grid.BeginBatch()
+
+            msg = gridlib.GridTableMessage(
+                    self, gridlib.GRIDTABLE_NOTIFY_ROWS_DELETED, frm, 1
+                    )
+
+            grid.ProcessTableMessage(msg)
+
+            msg = gridlib.GridTableMessage(
+                    self, gridlib.GRIDTABLE_NOTIFY_ROWS_INSERTED, to, 1
+                    )
+
+            grid.ProcessTableMessage(msg)
+            grid.EndBatch()
+        
     def OnPopupOne(self, event):
         logger.info("Popup one\n")
         tabTitle = self.Parent.grid.GetCellValue(self.rowSelected, 0)
@@ -510,7 +692,7 @@ class MainGrid(wx.grid.Grid):
         logger.info("OpenBook\n")
         print self.rowSelected
 #         self.grid=self.mainBookTab.tabOne.grid  
-        print 'directory_name:',directory_name 
+        print 'directory_name:', directory_name 
         FILE_NAME = ''
         FILE_NAME = "/home/vijay/Documents/Aptana_Workspace/Better/seleniumone/books/3082/Tinkering.pdf"
         # self.
@@ -701,6 +883,7 @@ class MainWindow(wx.Frame):
         self.SetTitle('Better Calibre')
         self.Centre()
         self.Show(True)
+    
      
     def gridActivity(self, bookName=None, books=None):
         print self.mainBookTab  
@@ -710,10 +893,11 @@ class MainWindow(wx.Frame):
         self.grid.ForceRefresh()
         availableRows = self.grid.GetNumberRows()
         totalRows = len(books)
+        self.grid.SetColLabelAlignment(wx.ALIGN_LEFT, wx.ALIGN_CENTRE)
         self.grid.ClearGrid()
-#         self.grid.ForceRefresh()
-        self.grid.ClearGrid
+        self.grid.ForceRefresh()
         try:
+            self.grid.ClearGrid
             
             if totalRows > availableRows :
                 try:
@@ -756,6 +940,7 @@ class MainWindow(wx.Frame):
                 self.grid.SetCellValue(rowNum, 5, book.bookFormat)
                 self.grid.SetCellValue(rowNum, 6, book.bookPath)
                 rowNum = rowNum + 1
+                self.SetStatusText('Done.')
         except:
             print 'somthing wrong with grid'
        
@@ -941,7 +1126,7 @@ def main():
     session = CreateDatabase().creatingDatabase()
 #     CreateDatabase().addingData(session)
     books = CreateDatabase().findAllBook(session)
-    bookName = 'java'
+    bookName = 'head'
     books = CreateDatabase().findByBookName(session, bookName)
     app = wx.App(0)
     frame = MainWindow(None, "My Calibre")
